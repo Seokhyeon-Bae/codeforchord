@@ -1,0 +1,823 @@
+{
+  "time_signatures": {
+    "4/4": {
+      "time_signature": "4/4",
+      "beats_per_measure": 4,
+      "beat_unit": 4,
+      "patterns": [
+        {
+          "durations": [
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ],
+          "time_signature": "4/4",
+          "beat_count": 4,
+          "frequency": 27
+        },
+        {
+          "durations": [
+            2.0,
+            2.0
+          ],
+          "time_signature": "4/4",
+          "beat_count": 4,
+          "frequency": 26
+        },
+        {
+          "durations": [
+            4.0
+          ],
+          "time_signature": "4/4",
+          "beat_count": 4,
+          "frequency": 25
+        },
+        {
+          "durations": [
+            2.0,
+            1.0,
+            1.0
+          ],
+          "time_signature": "4/4",
+          "beat_count": 4,
+          "frequency": 24
+        },
+        {
+          "durations": [
+            1.0,
+            1.0,
+            2.0
+          ],
+          "time_signature": "4/4",
+          "beat_count": 4,
+          "frequency": 23
+        },
+        {
+          "durations": [
+            0.5,
+            0.5,
+            1.0,
+            1.0,
+            1.0
+          ],
+          "time_signature": "4/4",
+          "beat_count": 4,
+          "frequency": 22
+        },
+        {
+          "durations": [
+            1.0,
+            0.5,
+            0.5,
+            1.0,
+            1.0
+          ],
+          "time_signature": "4/4",
+          "beat_count": 4,
+          "frequency": 21
+        },
+        {
+          "durations": [
+            1.0,
+            1.0,
+            0.5,
+            0.5,
+            1.0
+          ],
+          "time_signature": "4/4",
+          "beat_count": 4,
+          "frequency": 20
+        },
+        {
+          "durations": [
+            0.5,
+            0.5,
+            0.5,
+            0.5,
+            2.0
+          ],
+          "time_signature": "4/4",
+          "beat_count": 4,
+          "frequency": 19
+        },
+        {
+          "durations": [
+            0.5,
+            0.5,
+            0.5,
+            0.5,
+            0.5,
+            0.5,
+            0.5,
+            0.5
+          ],
+          "time_signature": "4/4",
+          "beat_count": 4,
+          "frequency": 18
+        },
+        {
+          "durations": [
+            0.5,
+            1.0,
+            0.5,
+            1.0,
+            1.0
+          ],
+          "time_signature": "4/4",
+          "beat_count": 4,
+          "frequency": 17
+        },
+        {
+          "durations": [
+            1.0,
+            0.5,
+            0.5,
+            0.5,
+            0.5,
+            1.0
+          ],
+          "time_signature": "4/4",
+          "beat_count": 4,
+          "frequency": 16
+        },
+        {
+          "durations": [
+            0.5,
+            1.5,
+            0.5,
+            1.5
+          ],
+          "time_signature": "4/4",
+          "beat_count": 4,
+          "frequency": 15
+        },
+        {
+          "durations": [
+            1.5,
+            0.5,
+            1.0,
+            1.0
+          ],
+          "time_signature": "4/4",
+          "beat_count": 4,
+          "frequency": 14
+        },
+        {
+          "durations": [
+            1.0,
+            1.5,
+            0.5,
+            1.0
+          ],
+          "time_signature": "4/4",
+          "beat_count": 4,
+          "frequency": 13
+        },
+        {
+          "durations": [
+            1.5,
+            0.5,
+            1.5,
+            0.5
+          ],
+          "time_signature": "4/4",
+          "beat_count": 4,
+          "frequency": 12
+        },
+        {
+          "durations": [
+            0.25,
+            0.25,
+            0.5,
+            1.0,
+            1.0,
+            1.0
+          ],
+          "time_signature": "4/4",
+          "beat_count": 4,
+          "frequency": 11
+        },
+        {
+          "durations": [
+            1.0,
+            0.25,
+            0.25,
+            0.25,
+            0.25,
+            1.0,
+            1.0
+          ],
+          "time_signature": "4/4",
+          "beat_count": 4,
+          "frequency": 10
+        }
+      ],
+      "beat_position_stats": {
+        "0": {
+          "beat_position": 0.0,
+          "duration_counts": {
+            "1.0": 10,
+            "2.0": 5,
+            "0.5": 3
+          },
+          "total_count": 18
+        },
+        "0.25": {
+          "beat_position": 0.25,
+          "duration_counts": {
+            "0.25": 6,
+            "0.5": 3
+          },
+          "total_count": 9
+        },
+        "0.5": {
+          "beat_position": 0.5,
+          "duration_counts": {
+            "0.5": 8,
+            "1.0": 4,
+            "0.25": 2
+          },
+          "total_count": 14
+        },
+        "0.75": {
+          "beat_position": 0.75,
+          "duration_counts": {
+            "0.25": 6,
+            "0.5": 3
+          },
+          "total_count": 9
+        },
+        "1": {
+          "beat_position": 1.0,
+          "duration_counts": {
+            "1.0": 10,
+            "2.0": 5,
+            "0.5": 3
+          },
+          "total_count": 18
+        },
+        "1.25": {
+          "beat_position": 1.25,
+          "duration_counts": {
+            "0.25": 6,
+            "0.5": 3
+          },
+          "total_count": 9
+        },
+        "1.5": {
+          "beat_position": 1.5,
+          "duration_counts": {
+            "0.5": 8,
+            "1.0": 4,
+            "0.25": 2
+          },
+          "total_count": 14
+        },
+        "1.75": {
+          "beat_position": 1.75,
+          "duration_counts": {
+            "0.25": 6,
+            "0.5": 3
+          },
+          "total_count": 9
+        },
+        "2": {
+          "beat_position": 2.0,
+          "duration_counts": {
+            "1.0": 10,
+            "2.0": 5,
+            "0.5": 3
+          },
+          "total_count": 18
+        },
+        "2.25": {
+          "beat_position": 2.25,
+          "duration_counts": {
+            "0.25": 6,
+            "0.5": 3
+          },
+          "total_count": 9
+        },
+        "2.5": {
+          "beat_position": 2.5,
+          "duration_counts": {
+            "0.5": 8,
+            "1.0": 4,
+            "0.25": 2
+          },
+          "total_count": 14
+        },
+        "2.75": {
+          "beat_position": 2.75,
+          "duration_counts": {
+            "0.25": 6,
+            "0.5": 3
+          },
+          "total_count": 9
+        },
+        "3": {
+          "beat_position": 3.0,
+          "duration_counts": {
+            "1.0": 10,
+            "2.0": 5,
+            "0.5": 3
+          },
+          "total_count": 18
+        },
+        "3.25": {
+          "beat_position": 3.25,
+          "duration_counts": {
+            "0.25": 6,
+            "0.5": 3
+          },
+          "total_count": 9
+        },
+        "3.5": {
+          "beat_position": 3.5,
+          "duration_counts": {
+            "0.5": 8,
+            "1.0": 4,
+            "0.25": 2
+          },
+          "total_count": 14
+        },
+        "3.75": {
+          "beat_position": 3.75,
+          "duration_counts": {
+            "0.25": 6,
+            "0.5": 3
+          },
+          "total_count": 9
+        }
+      },
+      "common_subdivisions": [
+        1.0,
+        0.5,
+        0.25
+      ]
+    },
+    "3/4": {
+      "time_signature": "3/4",
+      "beats_per_measure": 3,
+      "beat_unit": 4,
+      "patterns": [
+        {
+          "durations": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "time_signature": "3/4",
+          "beat_count": 3,
+          "frequency": 23
+        },
+        {
+          "durations": [
+            2.0,
+            1.0
+          ],
+          "time_signature": "3/4",
+          "beat_count": 3,
+          "frequency": 22
+        },
+        {
+          "durations": [
+            1.0,
+            2.0
+          ],
+          "time_signature": "3/4",
+          "beat_count": 3,
+          "frequency": 21
+        },
+        {
+          "durations": [
+            3.0
+          ],
+          "time_signature": "3/4",
+          "beat_count": 3,
+          "frequency": 20
+        },
+        {
+          "durations": [
+            0.5,
+            0.5,
+            1.0,
+            1.0
+          ],
+          "time_signature": "3/4",
+          "beat_count": 3,
+          "frequency": 19
+        },
+        {
+          "durations": [
+            1.0,
+            0.5,
+            0.5,
+            1.0
+          ],
+          "time_signature": "3/4",
+          "beat_count": 3,
+          "frequency": 18
+        },
+        {
+          "durations": [
+            0.5,
+            0.5,
+            0.5,
+            0.5,
+            1.0
+          ],
+          "time_signature": "3/4",
+          "beat_count": 3,
+          "frequency": 17
+        }
+      ],
+      "beat_position_stats": {
+        "0": {
+          "beat_position": 0.0,
+          "duration_counts": {
+            "1.0": 10,
+            "2.0": 5,
+            "0.5": 3
+          },
+          "total_count": 18
+        },
+        "0.25": {
+          "beat_position": 0.25,
+          "duration_counts": {
+            "0.25": 6,
+            "0.5": 3
+          },
+          "total_count": 9
+        },
+        "0.5": {
+          "beat_position": 0.5,
+          "duration_counts": {
+            "0.5": 8,
+            "1.0": 4,
+            "0.25": 2
+          },
+          "total_count": 14
+        },
+        "0.75": {
+          "beat_position": 0.75,
+          "duration_counts": {
+            "0.25": 6,
+            "0.5": 3
+          },
+          "total_count": 9
+        },
+        "1": {
+          "beat_position": 1.0,
+          "duration_counts": {
+            "1.0": 10,
+            "2.0": 5,
+            "0.5": 3
+          },
+          "total_count": 18
+        },
+        "1.25": {
+          "beat_position": 1.25,
+          "duration_counts": {
+            "0.25": 6,
+            "0.5": 3
+          },
+          "total_count": 9
+        },
+        "1.5": {
+          "beat_position": 1.5,
+          "duration_counts": {
+            "0.5": 8,
+            "1.0": 4,
+            "0.25": 2
+          },
+          "total_count": 14
+        },
+        "1.75": {
+          "beat_position": 1.75,
+          "duration_counts": {
+            "0.25": 6,
+            "0.5": 3
+          },
+          "total_count": 9
+        },
+        "2": {
+          "beat_position": 2.0,
+          "duration_counts": {
+            "1.0": 10,
+            "2.0": 5,
+            "0.5": 3
+          },
+          "total_count": 18
+        },
+        "2.25": {
+          "beat_position": 2.25,
+          "duration_counts": {
+            "0.25": 6,
+            "0.5": 3
+          },
+          "total_count": 9
+        },
+        "2.5": {
+          "beat_position": 2.5,
+          "duration_counts": {
+            "0.5": 8,
+            "1.0": 4,
+            "0.25": 2
+          },
+          "total_count": 14
+        },
+        "2.75": {
+          "beat_position": 2.75,
+          "duration_counts": {
+            "0.25": 6,
+            "0.5": 3
+          },
+          "total_count": 9
+        }
+      },
+      "common_subdivisions": [
+        1.0,
+        0.5,
+        0.25
+      ]
+    },
+    "6/8": {
+      "time_signature": "6/8",
+      "beats_per_measure": 6,
+      "beat_unit": 8,
+      "patterns": [
+        {
+          "durations": [
+            1.5,
+            1.5
+          ],
+          "time_signature": "6/8",
+          "beat_count": 6,
+          "frequency": 25
+        },
+        {
+          "durations": [
+            0.5,
+            0.5,
+            0.5,
+            0.5,
+            0.5,
+            0.5
+          ],
+          "time_signature": "6/8",
+          "beat_count": 6,
+          "frequency": 24
+        },
+        {
+          "durations": [
+            1.0,
+            0.5,
+            1.0,
+            0.5
+          ],
+          "time_signature": "6/8",
+          "beat_count": 6,
+          "frequency": 23
+        },
+        {
+          "durations": [
+            0.5,
+            0.5,
+            0.5,
+            1.5
+          ],
+          "time_signature": "6/8",
+          "beat_count": 6,
+          "frequency": 22
+        },
+        {
+          "durations": [
+            1.5,
+            0.5,
+            0.5,
+            0.5
+          ],
+          "time_signature": "6/8",
+          "beat_count": 6,
+          "frequency": 21
+        }
+      ],
+      "beat_position_stats": {
+        "0": {
+          "beat_position": 0.0,
+          "duration_counts": {
+            "1.0": 10,
+            "2.0": 5,
+            "0.5": 3
+          },
+          "total_count": 18
+        },
+        "0.25": {
+          "beat_position": 0.25,
+          "duration_counts": {
+            "0.25": 6,
+            "0.5": 3
+          },
+          "total_count": 9
+        },
+        "0.5": {
+          "beat_position": 0.5,
+          "duration_counts": {
+            "0.5": 8,
+            "1.0": 4,
+            "0.25": 2
+          },
+          "total_count": 14
+        },
+        "0.75": {
+          "beat_position": 0.75,
+          "duration_counts": {
+            "0.25": 6,
+            "0.5": 3
+          },
+          "total_count": 9
+        },
+        "1": {
+          "beat_position": 1.0,
+          "duration_counts": {
+            "1.0": 10,
+            "2.0": 5,
+            "0.5": 3
+          },
+          "total_count": 18
+        },
+        "1.25": {
+          "beat_position": 1.25,
+          "duration_counts": {
+            "0.25": 6,
+            "0.5": 3
+          },
+          "total_count": 9
+        },
+        "1.5": {
+          "beat_position": 1.5,
+          "duration_counts": {
+            "0.5": 8,
+            "1.0": 4,
+            "0.25": 2
+          },
+          "total_count": 14
+        },
+        "1.75": {
+          "beat_position": 1.75,
+          "duration_counts": {
+            "0.25": 6,
+            "0.5": 3
+          },
+          "total_count": 9
+        },
+        "2": {
+          "beat_position": 2.0,
+          "duration_counts": {
+            "1.0": 10,
+            "2.0": 5,
+            "0.5": 3
+          },
+          "total_count": 18
+        },
+        "2.25": {
+          "beat_position": 2.25,
+          "duration_counts": {
+            "0.25": 6,
+            "0.5": 3
+          },
+          "total_count": 9
+        },
+        "2.5": {
+          "beat_position": 2.5,
+          "duration_counts": {
+            "0.5": 8,
+            "1.0": 4,
+            "0.25": 2
+          },
+          "total_count": 14
+        },
+        "2.75": {
+          "beat_position": 2.75,
+          "duration_counts": {
+            "0.25": 6,
+            "0.5": 3
+          },
+          "total_count": 9
+        },
+        "3": {
+          "beat_position": 3.0,
+          "duration_counts": {
+            "1.0": 10,
+            "2.0": 5,
+            "0.5": 3
+          },
+          "total_count": 18
+        },
+        "3.25": {
+          "beat_position": 3.25,
+          "duration_counts": {
+            "0.25": 6,
+            "0.5": 3
+          },
+          "total_count": 9
+        },
+        "3.5": {
+          "beat_position": 3.5,
+          "duration_counts": {
+            "0.5": 8,
+            "1.0": 4,
+            "0.25": 2
+          },
+          "total_count": 14
+        },
+        "3.75": {
+          "beat_position": 3.75,
+          "duration_counts": {
+            "0.25": 6,
+            "0.5": 3
+          },
+          "total_count": 9
+        },
+        "4": {
+          "beat_position": 4.0,
+          "duration_counts": {
+            "1.0": 10,
+            "2.0": 5,
+            "0.5": 3
+          },
+          "total_count": 18
+        },
+        "4.25": {
+          "beat_position": 4.25,
+          "duration_counts": {
+            "0.25": 6,
+            "0.5": 3
+          },
+          "total_count": 9
+        },
+        "4.5": {
+          "beat_position": 4.5,
+          "duration_counts": {
+            "0.5": 8,
+            "1.0": 4,
+            "0.25": 2
+          },
+          "total_count": 14
+        },
+        "4.75": {
+          "beat_position": 4.75,
+          "duration_counts": {
+            "0.25": 6,
+            "0.5": 3
+          },
+          "total_count": 9
+        },
+        "5": {
+          "beat_position": 5.0,
+          "duration_counts": {
+            "1.0": 10,
+            "2.0": 5,
+            "0.5": 3
+          },
+          "total_count": 18
+        },
+        "5.25": {
+          "beat_position": 5.25,
+          "duration_counts": {
+            "0.25": 6,
+            "0.5": 3
+          },
+          "total_count": 9
+        },
+        "5.5": {
+          "beat_position": 5.5,
+          "duration_counts": {
+            "0.5": 8,
+            "1.0": 4,
+            "0.25": 2
+          },
+          "total_count": 14
+        },
+        "5.75": {
+          "beat_position": 5.75,
+          "duration_counts": {
+            "0.25": 6,
+            "0.5": 3
+          },
+          "total_count": 9
+        }
+      },
+      "common_subdivisions": [
+        1.0,
+        0.5,
+        0.25
+      ]
+    }
+  },
+  "total_songs_analyzed": 30,
+  "total_patterns_learned": 30,
+  "version": "1.0"
+}

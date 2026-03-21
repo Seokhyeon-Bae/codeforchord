@@ -1,8 +1,10 @@
 """Merge and combine audio analysis results."""
 
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Dict, Any
 from pathlib import Path
 import tempfile
+import numpy as np
+import librosa
 
 from app.models.note import NoteList
 from app.models.chord import ChordList
@@ -190,3 +192,160 @@ class AudioMerger:
             duration=notes.duration,
             sample_rate=notes.sample_rate,
         )
+    
+    def estimate_tempo(self, audio_path: str | Path) -> Dict[str, Any]:
+        """
+        Estimate tempo from audio using beat tracking.
+        
+        Returns:
+            Dict with 'tempo' (average BPM), 'tempo_range' (min, max),
+            'is_variable' (bool), and 'confidence'
+        """
+        y, sr = librosa.load(str(audio_path), sr=22050, mono=True)
+        
+        # Get tempo and beat frames
+        tempo, beat_frames = librosa.beat.beat_track(y=y, sr=sr)
+        
+        # Handle numpy array tempo (librosa may return array)
+        if isinstance(tempo, np.ndarray):
+            tempo = float(tempo[0]) if len(tempo) > 0 else 120.0
+        else:
+            tempo = float(tempo)
+        
+        # Analyze tempo variability
+        if len(beat_frames) > 2:
+            beat_times = librosa.frames_to_time(beat_frames, sr=sr)
+            beat_intervals = np.diff(beat_times)
+            
+            if len(beat_intervals) > 0:
+                # Calculate local tempos
+                local_tempos = 60.0 / beat_intervals
+                
+                # Filter outliers
+                valid_tempos = local_tempos[(local_tempos > 40) & (local_tempos < 240)]
+                
+                if len(valid_tempos) > 0:
+                    tempo_std = float(np.std(valid_tempos))
+                    tempo_mean = float(np.mean(valid_tempos))
+                    tempo_min = float(np.min(valid_tempos))
+                    tempo_max = float(np.max(valid_tempos))
+                    
+                    # Consider variable if std > 5% of mean
+                    is_variable = tempo_std > (tempo_mean * 0.05)
+                    
+                    # Confidence based on consistency
+                    confidence = max(0.0, min(1.0, 1.0 - (tempo_std / tempo_mean)))
+                    
+                    return {
+                        "tempo": round(tempo_mean),
+                        "tempo_range": (round(tempo_min), round(tempo_max)),
+                        "is_variable": is_variable,
+                        "confidence": round(confidence, 2),
+                    }
+        
+        # Fallback
+        return {
+            "tempo": round(tempo),
+            "tempo_range": (round(tempo), round(tempo)),
+            "is_variable": False,
+            "confidence": 0.5,
+        }
+    
+    def estimate_time_signature(self, audio_path: str | Path) -> Dict[str, Any]:
+        """
+        Estimate time signature from audio.
+        
+        Uses beat strength analysis to determine meter.
+        
+        Returns:
+            Dict with 'time_signature' (e.g., "4/4"), 'beats_per_measure',
+            and 'confidence'
+        """
+        y, sr = librosa.load(str(audio_path), sr=22050, mono=True)
+        
+        # Get onset envelope
+        onset_env = librosa.onset.onset_strength(y=y, sr=sr)
+        
+        # Get tempo and beat frames
+        tempo, beat_frames = librosa.beat.beat_track(y=y, sr=sr, onset_envelope=onset_env)
+        
+        if len(beat_frames) < 8:
+            return {
+                "time_signature": "4/4",
+                "beats_per_measure": 4,
+                "confidence": 0.3,
+            }
+        
+        # Analyze beat strength patterns
+        beat_strengths = onset_env[beat_frames]
+        
+        # Try different meters and see which has strongest downbeat pattern
+        meters = [2, 3, 4, 6]
+        best_meter = 4
+        best_score = 0.0
+        
+        for meter in meters:
+            if len(beat_strengths) >= meter * 2:
+                # Reshape to measures
+                n_measures = len(beat_strengths) // meter
+                if n_measures > 0:
+                    measure_beats = beat_strengths[:n_measures * meter].reshape(n_measures, meter)
+                    
+                    # Calculate average beat strength per position
+                    avg_strengths = np.mean(measure_beats, axis=0)
+                    
+                    # Score: how much stronger is beat 1 vs others?
+                    if len(avg_strengths) > 1:
+                        downbeat_ratio = avg_strengths[0] / (np.mean(avg_strengths[1:]) + 1e-6)
+                        score = downbeat_ratio
+                        
+                        if score > best_score:
+                            best_score = score
+                            best_meter = meter
+        
+        # Determine confidence
+        confidence = min(1.0, best_score / 2.0) if best_score > 0 else 0.3
+        
+        # Map to time signature
+        sig_map = {
+            2: "2/4",
+            3: "3/4",
+            4: "4/4",
+            6: "6/8",
+        }
+        
+        return {
+            "time_signature": sig_map.get(best_meter, "4/4"),
+            "beats_per_measure": best_meter,
+            "confidence": round(confidence, 2),
+        }
+    
+    def analyze_full(
+        self,
+        audio_path: str | Path,
+        detect_notes: bool = True,
+        detect_chords: bool = True,
+        min_note_confidence: float = 0.5,
+    ) -> Dict[str, Any]:
+        """
+        Run comprehensive audio analysis including tempo and time signature.
+        
+        Returns:
+            Dict with notes, chords, tempo_info, time_signature_info
+        """
+        notes, chords = self.analyze(
+            audio_path,
+            detect_notes=detect_notes,
+            detect_chords=detect_chords,
+            min_note_confidence=min_note_confidence,
+        )
+        
+        tempo_info = self.estimate_tempo(audio_path)
+        time_sig_info = self.estimate_time_signature(audio_path)
+        
+        return {
+            "notes": notes,
+            "chords": chords,
+            "tempo_info": tempo_info,
+            "time_signature_info": time_sig_info,
+        }

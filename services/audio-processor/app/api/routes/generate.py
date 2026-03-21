@@ -43,6 +43,7 @@ async def generate_sheet(
     tempo: int = Query(120, ge=20, le=300, description="Tempo in BPM"),
     time_signature: str = Query("4/4", description="Time signature"),
     instrument: Instrument = Query(Instrument.PIANO),
+    correction_strength: float = Query(0.5, ge=0.0, le=1.0, description="Rhythm correction strength (0=off, 1=max)"),
 ):
     """
     Generate sheet music from uploaded audio.
@@ -54,6 +55,9 @@ async def generate_sheet(
     - chords_only: Just chord symbols
     - lead_sheet: Melody with chord symbols
     - full_score: Complete arrangement with accompaniment
+    
+    Rhythm correction uses learned patterns to fix timing and duration issues.
+    Set correction_strength to 0 to disable, or higher values for more aggressive correction.
     """
     ext = get_file_extension(file.filename)
     with tempfile.NamedTemporaryFile(suffix=ext, delete=False) as tmp:
@@ -87,6 +91,7 @@ async def generate_sheet(
                 chords=chords,
                 output_type=output_type,
                 metadata=metadata,
+                correction_strength=correction_strength,
             )
         else:  # MIDI
             generator = MidiGenerator()

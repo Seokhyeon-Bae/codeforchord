@@ -5,6 +5,9 @@ from .midi_generator import MidiGenerator
 from .arranger import Arranger
 from .melody_suggester import MelodySuggester
 from .audio_merger import AudioMerger
+from .rhythm_corrector import RhythmCorrector
+from .rhythm_analyzer import RhythmAnalyzer
+from .data_collector import DataCollector
 
 __all__ = [
     "PitchDetector",
@@ -14,4 +17,7 @@ __all__ = [
     "Arranger",
     "MelodySuggester",
     "AudioMerger",
+    "RhythmCorrector",
+    "RhythmAnalyzer",
+    "DataCollector",
 ]

@@ -261,38 +261,46 @@ class ChordDetector:
         if not frame_chords:
             return []
         
+        # Ensure times is a 1D array and convert to Python floats
+        times = np.asarray(times).flatten()
+        
         chords = []
         current_chord = frame_chords[0]
-        start_time = times[0]
+        start_time = float(times[0])
         
         for i in range(1, len(frame_chords)):
             if frame_chords[i] != current_chord:
                 # End current chord
-                end_time = times[i]
+                end_time = float(times[i])
                 root, quality, bass = self._parse_chord_symbol(current_chord)
+                
+                duration = max(0.1, end_time - start_time)
                 
                 chords.append(DetectedChord(
                     symbol=current_chord,
                     root=root,
                     quality=quality,
-                    timestamp=float(start_time),
-                    duration=float(end_time - start_time),
+                    timestamp=start_time,
+                    duration=duration,
                     bass_note=bass,
                     confidence=0.7,  # Lower confidence for librosa method
                 ))
                 
                 current_chord = frame_chords[i]
-                start_time = times[i]
+                start_time = float(times[i])
         
         # Add final chord
         if len(times) > 0:
             root, quality, bass = self._parse_chord_symbol(current_chord)
+            final_duration = float(times[-1]) - start_time + self.hop_length / 22050
+            final_duration = max(0.1, final_duration)
+            
             chords.append(DetectedChord(
                 symbol=current_chord,
                 root=root,
                 quality=quality,
-                timestamp=float(start_time),
-                duration=float(times[-1] - start_time + self.hop_length / 22050),
+                timestamp=start_time,
+                duration=final_duration,
                 bass_note=bass,
                 confidence=0.7,
             ))

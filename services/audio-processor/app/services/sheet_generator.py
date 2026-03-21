@@ -1,5 +1,6 @@
 """Sheet music generation using music21 for MusicXML output."""
 
+import logging
 from typing import Optional
 from music21 import (
     stream, 
@@ -24,12 +25,28 @@ from app.models.sheet import (
     Instrument,
 )
 
+logger = logging.getLogger(__name__)
+
 
 class SheetGenerator:
     """Generate MusicXML sheet music from detected notes and chords."""
     
-    def __init__(self):
+    def __init__(self, enable_correction: bool = True):
         self.ticks_per_beat = 480
+        self.enable_correction = enable_correction
+        self._corrector = None
+    
+    @property
+    def corrector(self):
+        """Lazy-load the rhythm corrector."""
+        if self._corrector is None and self.enable_correction:
+            try:
+                from app.services.rhythm_corrector import RhythmCorrector
+                self._corrector = RhythmCorrector()
+            except Exception as e:
+                logger.warning(f"Could not load rhythm corrector: {e}")
+                self._corrector = False  # Mark as failed
+        return self._corrector if self._corrector else None
     
     def generate(
         self,
@@ -37,6 +54,7 @@ class SheetGenerator:
         chords: Optional[ChordList] = None,
         output_type: OutputType = OutputType.LEAD_SHEET,
         metadata: Optional[SheetMetadata] = None,
+        correction_strength: float = 0.5,
     ) -> GeneratedSheet:
         """
         Generate sheet music from notes and/or chords.
@@ -46,11 +64,25 @@ class SheetGenerator:
             chords: Detected chords
             output_type: Type of sheet to generate
             metadata: Sheet metadata (title, tempo, etc.)
+            correction_strength: 0-1, rhythm correction strength (0=off)
             
         Returns:
             GeneratedSheet with MusicXML content
         """
         metadata = metadata or SheetMetadata()
+        
+        # Apply rhythm correction if enabled
+        if notes and correction_strength > 0 and self.corrector:
+            try:
+                notes = self.corrector.correct(
+                    notes,
+                    time_signature=metadata.time_signature,
+                    tempo=metadata.tempo,
+                    correction_strength=correction_strength,
+                )
+                logger.info(f"Applied rhythm correction (strength={correction_strength})")
+            except Exception as e:
+                logger.warning(f"Rhythm correction failed: {e}")
         
         if output_type == OutputType.CHORDS_ONLY:
             score = self._generate_chords_only(chords, metadata)
@@ -215,35 +247,36 @@ class SheetGenerator:
         seconds_per_beat = 60.0 / bpm
         
         current_offset = 0.0
-        last_end = 0.0
         
         for detected_note in notes:
             # Calculate offset from start
             note_offset = detected_note.start_time / seconds_per_beat
             
             # Add rest if there's a gap
-            if note_offset > current_offset + 0.125:  # Allow small overlap
-                rest_duration = note_offset - current_offset
-                if rest_duration > 0.125:
-                    r = note.Rest(quarterLength=self._quantize_duration(rest_duration))
-                    part.append(r)
+            gap = note_offset - current_offset
+            if gap > 0.125:  # Minimum gap to add rest
+                rest_duration = self._quantize_duration(gap)
+                r = note.Rest(quarterLength=rest_duration)
+                part.append(r)
+                current_offset += rest_duration
             
             # Calculate note duration
             duration = detected_note.duration / seconds_per_beat
             duration = self._quantize_duration(duration)
+            
+            # Ensure minimum duration
+            if duration < 0.125:
+                duration = 0.125
             
             # Create note
             n = note.Note(detected_note.pitch)
             n.quarterLength = duration
             
             # Set velocity as dynamics
-            if detected_note.velocity < 50:
-                n.volume.velocity = detected_note.velocity
-            else:
-                n.volume.velocity = detected_note.velocity
+            n.volume.velocity = min(127, max(1, detected_note.velocity))
             
             part.append(n)
-            current_offset = note_offset + duration
+            current_offset += duration
     
     def _add_chord_symbols(
         self, 
@@ -269,8 +302,15 @@ class SheetGenerator:
         
         for chord in chords:
             offset = chord.timestamp / seconds_per_beat
+            # Quantize offset to nearest beat subdivision
+            offset = self._quantize_offset(offset)
             cs = harmony.ChordSymbol(chord.symbol)
             part.insert(offset, cs)
+    
+    def _quantize_offset(self, offset: float) -> float:
+        """Quantize offset to nearest eighth note position."""
+        # Round to nearest 0.5 (eighth note)
+        return round(offset * 2) / 2
     
     def _add_chord_voicings(
         self,
@@ -377,21 +417,48 @@ class SheetGenerator:
             return None
     
     def _quantize_duration(self, duration: float) -> float:
-        """Quantize duration to nearest musical value."""
-        # Common durations: 4, 2, 1, 0.5, 0.25, 0.125 (whole to 32nd)
-        valid_durations = [4.0, 3.0, 2.0, 1.5, 1.0, 0.75, 0.5, 0.375, 0.25, 0.125]
+        """Quantize duration to nearest expressible musical value."""
+        # Only use standard note values that MusicXML can express
+        # These are all expressible: whole, half, quarter, eighth, sixteenth, 32nd
+        # Plus dotted versions (multiply by 1.5)
+        valid_durations = [
+            4.0,    # whole
+            3.0,    # dotted half
+            2.0,    # half
+            1.5,    # dotted quarter
+            1.0,    # quarter
+            0.75,   # dotted eighth
+            0.5,    # eighth
+            0.25,   # sixteenth
+            0.125,  # 32nd
+        ]
         
-        # Also allow dotted values
-        dotted = [d * 1.5 for d in valid_durations]
-        all_durations = sorted(set(valid_durations + dotted), reverse=True)
+        # Ensure duration is positive
+        duration = abs(duration)
         
-        # Find closest
-        closest = min(all_durations, key=lambda x: abs(x - duration))
+        # Find closest standard duration
+        closest = min(valid_durations, key=lambda x: abs(x - duration))
         return max(0.125, closest)  # Minimum 32nd note
     
     def _export_to_musicxml(self, score: stream.Score) -> str:
         """Export score to MusicXML string."""
         from music21.musicxml import m21ToXml
+        
+        # Quantize all elements to standard durations
+        try:
+            score = score.quantize(
+                quarterLengthDivisors=[4, 3],  # Allow 16th notes and triplets
+                processOffsets=True,
+                processDurations=True,
+            )
+        except Exception:
+            pass
+        
+        # Make notation to fix any duration/measure issues
+        try:
+            score = score.makeNotation()
+        except Exception:
+            pass  # Continue even if makeNotation fails
         
         exporter = m21ToXml.GeneralObjectExporter(score)
         xml_bytes = exporter.parse()

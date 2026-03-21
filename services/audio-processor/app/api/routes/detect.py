@@ -110,9 +110,9 @@ async def detect_all(
     min_confidence: float = Query(0.5, ge=0.0, le=1.0),
 ):
     """
-    Run full audio analysis: notes AND chords.
+    Run full audio analysis: notes, chords, tempo, and time signature.
     
-    Returns both detected notes and chords in a single response.
+    Returns detected notes, chords, estimated tempo, and time signature.
     Optionally filters by instrument range.
     """
     validate_file_extension(file.filename)
@@ -130,10 +130,14 @@ async def detect_all(
         )
         merger = AudioMerger(pitch_detector=pitch_detector)
         
-        notes, chords = merger.analyze(
+        # Run comprehensive analysis
+        analysis = merger.analyze_full(
             tmp_path,
             min_note_confidence=min_confidence,
         )
+        
+        notes = analysis["notes"]
+        chords = analysis["chords"]
         
         # Filter by instrument range
         if notes and instrument:
@@ -144,6 +148,8 @@ async def detect_all(
             "chords": chords.model_dump() if chords else None,
             "instrument": instrument.value,
             "source_file": file.filename,
+            "tempo_info": analysis["tempo_info"],
+            "time_signature_info": analysis["time_signature_info"],
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Analysis failed: {str(e)}")

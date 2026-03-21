@@ -105,12 +105,19 @@ class PitchDetector:
             start_time = float(event[0])
             end_time = float(event[1])
             pitch = int(event[2])
-            velocity = int(event[3])
+            # Ensure velocity is at least 1 (MIDI valid range is 1-127)
+            velocity = max(1, min(127, int(event[3])))
             
-            # Handle optional pitch bend
+            # Handle optional pitch bend - may be a list or single value
             pitch_bend = None
             if len(event) > 4 and event[4] is not None:
-                pitch_bend = float(event[4])
+                pb = event[4]
+                # Basic Pitch may return an array of pitch bends - take the mean
+                if isinstance(pb, (list, np.ndarray)):
+                    if len(pb) > 0:
+                        pitch_bend = float(np.mean(pb))
+                else:
+                    pitch_bend = float(pb)
             
             # Estimate confidence from model activation
             confidence = self._estimate_confidence(
