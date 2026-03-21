@@ -1,0 +1,28 @@
+# Core framework
+fastapi>=0.109.0
+uvicorn[standard]>=0.27.0
+python-multipart>=0.0.6
+
+# Audio processing
+basic-pitch>=0.4.0
+librosa>=0.10.1
+soundfile>=0.12.1
+numpy>=1.24.0
+scipy>=1.11.0
+
+# Vamp plugin support (optional - install manually if needed)
+# pip install vamp  # Requires Python <3.12 or manual build
+
+# Music generation
+music21>=9.1.0
+midiutil>=1.2.1
+
+# Utilities
+pydantic>=2.5.0
+pydantic-settings>=2.1.0
+aiofiles>=23.2.1
+
+# Testing
+pytest>=8.0.0
+pytest-asyncio>=0.23.0
+httpx>=0.26.0
