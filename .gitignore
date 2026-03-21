@@ -58,16 +58,12 @@ logs/
 Thumbs.db
 
 # Training data and music files
-services/audio-processor/data/training/
-services/audio-processor/data/training_musicxml/
-**/music/
-**/songs/
 **/musicxml/
 **/audio_samples/
 *.mp3
 *.wav
 *.flac
-*.ogg
+*.oggs
 *.m4a
 *.aac
 
