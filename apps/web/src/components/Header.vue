@@ -1,8 +1,19 @@
 <script setup>
+import { ref } from 'vue'
 import { useAuth0 } from '@auth0/auth0-vue'
 import { getAppOrigin } from '@/config/appOrigin'
+import MarketingNavModal from './MarketingNavModal.vue'
 
 const { isAuthenticated, isLoading, user, loginWithRedirect, logout } = useAuth0()
+
+const navSection = ref(null) // 'how' | 'pricing' | 'api' | null
+
+function openNav(section) {
+  navSection.value = section
+}
+function closeNav() {
+  navSection.value = null
+}
 
 const login = async () => {
   try {
@@ -17,9 +28,9 @@ const handleLogout = () => logout({ logoutParams: { returnTo: getAppOrigin() } }
 <template>
   <header class="bg-[#242429]/90 backdrop-blur-md border-b border-[#3a3a42] sticky top-0 z-40">
     <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="flex items-center justify-between h-16">
+      <div class="grid grid-cols-[minmax(0,auto)_1fr_minmax(0,auto)] items-center gap-3 h-16">
         <!-- Logo -->
-        <div class="flex items-center">
+        <div class="flex items-center min-w-0">
           <img
             src="/favicon.png"
             alt="CodeForChord"
@@ -34,14 +45,32 @@ const handleLogout = () => logout({ logoutParams: { returnTo: getAppOrigin() } }
         </div>
 
         <!-- Nav Links -->
-        <nav class="hidden md:flex items-center space-x-8">
-          <a href="#" class="text-[#a0a0a8] hover:text-[#d4a55a] text-sm font-medium transition-colors">How it works</a>
-          <a href="#" class="text-[#a0a0a8] hover:text-[#d4a55a] text-sm font-medium transition-colors">Pricing</a>
-          <a href="#" class="text-[#a0a0a8] hover:text-[#d4a55a] text-sm font-medium transition-colors">API</a>
+        <nav class="flex flex-wrap items-center justify-center gap-x-4 sm:gap-x-6 md:gap-x-8 min-w-0">
+          <button
+            type="button"
+            class="text-[#a0a0a8] hover:text-[#d4a55a] text-sm font-medium transition-colors cursor-pointer bg-transparent border-0 p-0"
+            @click="openNav('how')"
+          >
+            How it works
+          </button>
+          <button
+            type="button"
+            class="text-[#a0a0a8] hover:text-[#d4a55a] text-sm font-medium transition-colors cursor-pointer bg-transparent border-0 p-0"
+            @click="openNav('pricing')"
+          >
+            Pricing
+          </button>
+          <button
+            type="button"
+            class="text-[#a0a0a8] hover:text-[#d4a55a] text-sm font-medium transition-colors cursor-pointer bg-transparent border-0 p-0"
+            @click="openNav('api')"
+          >
+            API
+          </button>
         </nav>
 
         <!-- Auth Actions -->
-        <div class="flex items-center space-x-3">
+        <div class="flex items-center justify-end space-x-2 sm:space-x-3 shrink-0">
           <!-- Loading -->
           <div v-if="isLoading" class="w-8 h-8 rounded-full bg-[#333338] animate-pulse" />
 
@@ -85,5 +114,7 @@ const handleLogout = () => logout({ logoutParams: { returnTo: getAppOrigin() } }
         </div>
       </div>
     </div>
+
+    <MarketingNavModal :open="!!navSection" :section="navSection" @close="closeNav" />
   </header>
 </template>
