@@ -1,5 +1,6 @@
 <script setup>
 import { useAuth0 } from '@auth0/auth0-vue'
+import { getAppOrigin } from '@/config/appOrigin'
 
 const { isAuthenticated, isLoading, user, loginWithRedirect, logout } = useAuth0()
 
@@ -11,7 +12,7 @@ const login = async () => {
   }
 }
 const signup = () => loginWithRedirect({ authorizationParams: { screen_hint: 'signup' } }).catch(e => console.error('signup error:', e))
-const handleLogout = () => logout({ logoutParams: { returnTo: window.location.origin } })
+const handleLogout = () => logout({ logoutParams: { returnTo: getAppOrigin() } })
 </script>
 
 <template>

@@ -207,6 +207,45 @@ python scripts/train_patterns.py --input /path/to/your/musicxml/folder
 
 ---
 
+## Deploying the web app (Vercel)
+
+The **Vue** frontend in `apps/web` can be hosted on Vercel. The **Python API** must run elsewhere (e.g. Railway, Render, Azure, a VPS); point the UI at it with `VITE_API_URL`.
+
+### Option A — Repository root (recommended for this monorepo)
+
+1. Import the GitHub repo in Vercel; leave **Root Directory** empty (or `.`).
+2. Vercel reads the root [`vercel.json`](vercel.json): installs and builds from `apps/web`, output `apps/web/dist`.
+3. In **Project → Settings → Environment Variables**, add (Production / Preview as needed):
+   - `VITE_API_URL` — your public API base URL, e.g. `https://api.yourdomain.com` (**no trailing slash**).
+   - **`VITE_APP_ORIGIN`** — your deployed frontend origin, e.g. `https://your-app.vercel.app` (**no trailing slash**). Used as Auth0 `redirect_uri` and logout `returnTo` so it always matches **Allowed Callback URLs** in production.
+   - Auth0: `VITE_AUTH0_DOMAIN`, `VITE_AUTH0_CLIENT_ID`, `VITE_AUTH0_AUDIENCE`.
+4. Redeploy after changing env vars (they are baked in at **build** time for `VITE_*`).
+
+### Option B — Root directory `apps/web`
+
+1. Set **Root Directory** to `apps/web`.
+2. Uses [`apps/web/vercel.json`](apps/web/vercel.json) (Vite preset + SPA rewrites). Build/install use that folder’s `package.json`.
+3. Set the same `VITE_*` variables in Vercel.
+
+### What the config does
+
+- **SPA fallback**: unknown paths rewrite to `index.html` so client routing and refreshes work.
+- **Caching**: long cache for `/assets/*` (Vite hashed filenames).
+- **Headers**: `X-Content-Type-Options`, `Referrer-Policy`.
+- **Node**: `apps/web/.nvmrc` and `package.json` `engines` prefer **Node 20+**.
+
+### Auth0
+
+Set **`VITE_APP_ORIGIN`** in Vercel to the same URL you list in Auth0 (e.g. `https://your-app.vercel.app`).
+
+In the Auth0 dashboard (**Applications → your SPA → Settings**), add that exact URL to **Allowed Callback URLs**, **Allowed Logout URLs**, and **Allowed Web Origins**. For **Preview** deployments with different URLs, either add each preview URL, use an Auth0-allowed wildcard pattern for `*.vercel.app` if your plan supports it, or set **`VITE_APP_ORIGIN`** per Preview branch to the preview URL.
+
+### CORS
+
+The API uses permissive CORS in development; for production, restrict `allow_origins` to your Vercel domain in `services/audio-processor/app/main.py` if you tighten security.
+
+---
+
 ## API Endpoints
 
 ### Detection
@@ -241,6 +280,7 @@ codeforchord/
 │   │   │   ├── components/     # Vue components
 │   │   │   ├── stores/         # Pinia stores
 │   │   │   └── api/            # API client
+│   │   ├── vercel.json         # Vercel (when Root Directory = apps/web)
 │   │   └── package.json
 │   └── ios/                    # Native SwiftUI iOS app
 │       ├── CodeForChord.xcodeproj
@@ -259,6 +299,7 @@ codeforchord/
 │       ├── scripts/
 │       │   └── train_patterns.py
 │       └── requirements.txt
+├── vercel.json                 # Vercel (monorepo build from repo root)
 └── README.md
 ```
 
@@ -268,7 +309,7 @@ codeforchord/
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `VITE_API_URL` | `http://localhost:8000` | Backend API URL |
+| `VITE_API_URL` | `http://localhost:8000` | Backend API URL (set in Vercel for production builds) |
 | `CFC_DEBUG` | `false` | Enable debug mode |
 | `CFC_SAMPLE_RATE` | `22050` | Audio sample rate |
 | `CFC_MAX_UPLOAD_SIZE` | `52428800` | Max upload size (50MB) |

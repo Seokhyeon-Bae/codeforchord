@@ -100,3 +100,5 @@ coverage.xml
 # Cursor/Editor specific
 .cursor/
 *.plan.md
+
+.vercel
