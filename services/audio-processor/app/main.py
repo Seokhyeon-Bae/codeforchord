@@ -119,7 +119,7 @@ async def info():
     """Get API information and capabilities."""
     return {
         "supported_formats": {
-            "input": [".wav", ".mp3", ".flac", ".ogg", ".m4a"],
+            "input": [".wav", ".mp3", ".flac", ".ogg", ".m4a", ".webm"],
             "output": ["musicxml", "midi", "json"],
         },
         "supported_instruments": ["piano", "guitar", "vocal"],

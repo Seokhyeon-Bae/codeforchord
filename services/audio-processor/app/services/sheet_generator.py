@@ -1,7 +1,8 @@
 """Sheet music generation using music21 for MusicXML output."""
 
 import logging
-from typing import Optional
+import math
+from typing import Optional, List, Tuple
 from music21 import (
     stream, 
     note, 
@@ -13,6 +14,8 @@ from music21 import (
     instrument,
     expressions,
     clef,
+    layout,
+    duration,
 )
 
 from app.models.note import DetectedNote, NoteList
@@ -26,6 +29,23 @@ from app.models.sheet import (
 )
 
 logger = logging.getLogger(__name__)
+
+# Standard quantization grid values (in quarter notes)
+QUANTIZE_GRID = [
+    4.0,    # whole
+    3.0,    # dotted half
+    2.0,    # half
+    1.5,    # dotted quarter
+    1.0,    # quarter
+    0.75,   # dotted eighth
+    0.5,    # eighth
+    0.375,  # dotted sixteenth
+    0.25,   # sixteenth
+    0.125,  # 32nd
+]
+
+# Beat positions for snapping (subdivisions of a quarter note)
+BEAT_SUBDIVISIONS = [0.0, 0.25, 0.5, 0.75]  # On beat, e-and-a
 
 
 class SheetGenerator:
@@ -192,11 +212,15 @@ class SheetGenerator:
         chords: Optional[ChordList],
         metadata: SheetMetadata,
     ) -> stream.Score:
-        """Generate a full score with separate melody and chord parts."""
+        """Generate a full piano score with grand staff (treble + bass clefs)."""
         score = stream.Score()
         score.metadata = self._create_metadata(metadata)
         
-        # Melody part
+        # For piano, create a proper grand staff
+        if metadata.instrument == Instrument.PIANO or not notes:
+            return self._generate_piano_grand_staff(notes, chords, metadata)
+        
+        # For other instruments, use melody + accompaniment
         melody_part = stream.Part()
         melody_part.partName = "Melody"
         melody_part.insert(0, self._get_instrument(metadata.instrument))
@@ -217,11 +241,10 @@ class SheetGenerator:
         
         score.append(melody_part)
         
-        # Chord/accompaniment part
+        # Piano accompaniment part
         chord_part = stream.Part()
-        chord_part.partName = "Accompaniment"
+        chord_part.partName = "Piano"
         chord_part.insert(0, instrument.Piano())
-        
         chord_part.append(self._parse_time_signature(metadata.time_signature))
         
         if chords and chords.chords:
@@ -233,50 +256,388 @@ class SheetGenerator:
         
         return score
     
+    def _generate_piano_grand_staff(
+        self,
+        notes: Optional[NoteList],
+        chords: Optional[ChordList],
+        metadata: SheetMetadata,
+    ) -> stream.Score:
+        """Generate a proper piano grand staff with treble and bass clefs."""
+        score = stream.Score()
+        score.metadata = self._create_metadata(metadata)
+        
+        ts = self._parse_time_signature(metadata.time_signature)
+        beats_per_measure = ts.numerator
+        beat_type = ts.denominator
+        quarter_notes_per_measure = (4.0 / beat_type) * beats_per_measure
+        
+        # Split notes into right hand (treble) and left hand (bass)
+        SPLIT_PITCH = 60  # Middle C
+        
+        right_hand_notes = []
+        left_hand_notes = []
+        
+        if notes and notes.notes:
+            for n in notes.notes:
+                if n.pitch >= SPLIT_PITCH:
+                    right_hand_notes.append(n)
+                else:
+                    left_hand_notes.append(n)
+        
+        # Calculate total duration needed
+        seconds_per_beat = 60.0 / metadata.tempo
+        total_duration = 0.0
+        if notes and notes.notes:
+            for n in notes.notes:
+                end_time = n.start_time + n.duration
+                total_duration = max(total_duration, end_time)
+        if chords and chords.chords:
+            for c in chords.chords:
+                end_time = c.timestamp + c.duration
+                total_duration = max(total_duration, end_time)
+        
+        total_quarter_notes = total_duration / seconds_per_beat
+        num_measures = max(1, math.ceil(total_quarter_notes / quarter_notes_per_measure))
+        
+        # Create key signature
+        key_sig = None
+        if metadata.key_signature:
+            key_sig = self._parse_key_signature(metadata.key_signature)
+        elif chords and chords.key:
+            key_sig = self._parse_key_signature(chords.key)
+        
+        # Right hand part (treble clef)
+        right_part = stream.Part()
+        right_part.partName = "Piano"
+        right_part.insert(0, instrument.Piano())
+        right_part.insert(0, clef.TrebleClef())
+        right_part.insert(0, ts)
+        right_part.insert(0, tempo.MetronomeMark(number=metadata.tempo))
+        if key_sig:
+            right_part.insert(0, key_sig)
+        
+        # Add right hand notes with proper alignment
+        self._add_aligned_notes(
+            right_part, 
+            right_hand_notes, 
+            metadata.tempo, 
+            quarter_notes_per_measure,
+            num_measures
+        )
+        
+        # Add chord symbols above treble staff
+        if chords and chords.chords:
+            self._add_chord_symbols_to_part(right_part, chords.chords, metadata.tempo)
+        
+        # Left hand part (bass clef)
+        left_part = stream.Part()
+        left_part.partName = "Piano"
+        left_part.insert(0, instrument.Piano())
+        left_part.insert(0, clef.BassClef())
+        left_part.insert(0, self._parse_time_signature(metadata.time_signature))
+        if key_sig:
+            left_part.insert(0, self._parse_key_signature(
+                metadata.key_signature or (chords.key if chords else None) or "C"
+            ))
+        
+        # Add left hand notes or chord voicings
+        if left_hand_notes:
+            self._add_aligned_notes(
+                left_part, 
+                left_hand_notes, 
+                metadata.tempo, 
+                quarter_notes_per_measure,
+                num_measures
+            )
+        elif chords and chords.chords:
+            self._add_aligned_chord_voicings(
+                left_part, 
+                chords.chords, 
+                metadata.tempo, 
+                quarter_notes_per_measure,
+                num_measures
+            )
+        else:
+            # Fill with rests to match right hand
+            self._fill_with_rests(left_part, quarter_notes_per_measure, num_measures)
+        
+        # Add parts to score
+        score.append(right_part)
+        score.append(left_part)
+        
+        # Create staff group for grand staff appearance
+        try:
+            staff_group = layout.StaffGroup(
+                [right_part, left_part],
+                symbol='brace',
+                barTogether=True,
+            )
+            score.insert(0, staff_group)
+        except Exception:
+            pass
+        
+        return score
+    
+    def _snap_to_grid(self, value: float, grid_size: float = 0.25) -> float:
+        """Snap a value to the nearest grid point."""
+        return round(value / grid_size) * grid_size
+    
+    def _add_aligned_notes(
+        self,
+        part: stream.Part,
+        notes: List[DetectedNote],
+        bpm: int,
+        quarter_notes_per_measure: float,
+        num_measures: int,
+    ):
+        """Add notes with proper beat grid alignment."""
+        if not notes:
+            self._fill_with_rests(part, quarter_notes_per_measure, num_measures)
+            return
+        
+        seconds_per_beat = 60.0 / bpm
+        total_duration = quarter_notes_per_measure * num_measures
+        
+        # Convert notes to (offset, duration, pitch, velocity) with grid snapping
+        aligned_notes = []
+        for n in notes:
+            offset = n.start_time / seconds_per_beat
+            dur = n.duration / seconds_per_beat
+            
+            # Snap offset to sixteenth note grid
+            offset = self._snap_to_grid(offset, 0.25)
+            
+            # Quantize duration
+            dur = self._quantize_duration(dur)
+            
+            # Ensure note fits within total duration
+            if offset >= total_duration:
+                continue
+            if offset + dur > total_duration:
+                dur = total_duration - offset
+                dur = self._quantize_duration(dur)
+            
+            aligned_notes.append((offset, dur, n.pitch, n.velocity))
+        
+        # Sort by offset
+        aligned_notes.sort(key=lambda x: x[0])
+        
+        # Build the part measure by measure
+        current_offset = 0.0
+        
+        for offset, dur, pitch, velocity in aligned_notes:
+            # Add rest if there's a gap
+            gap = offset - current_offset
+            if gap >= 0.25:  # At least a sixteenth note gap
+                self._add_quantized_rest(part, gap)
+                current_offset = offset
+            elif gap > 0:
+                # Small gap - adjust to grid
+                current_offset = offset
+            
+            # Add the note
+            n = note.Note(pitch)
+            n.quarterLength = dur
+            n.volume.velocity = min(127, max(1, velocity))
+            part.append(n)
+            current_offset += dur
+        
+        # Fill remaining time with rests
+        remaining = total_duration - current_offset
+        if remaining >= 0.25:
+            self._add_quantized_rest(part, remaining)
+    
+    def _add_quantized_rest(self, part: stream.Part, duration: float):
+        """Add rests that sum to the given duration using standard note values."""
+        remaining = duration
+        
+        while remaining >= 0.125:  # Minimum 32nd note
+            # Find largest standard duration that fits
+            for std_dur in QUANTIZE_GRID:
+                if std_dur <= remaining + 0.0001:  # Small tolerance
+                    r = note.Rest(quarterLength=std_dur)
+                    part.append(r)
+                    remaining -= std_dur
+                    break
+            else:
+                # Fallback: use smallest value
+                r = note.Rest(quarterLength=0.125)
+                part.append(r)
+                remaining -= 0.125
+    
+    def _fill_with_rests(
+        self,
+        part: stream.Part,
+        quarter_notes_per_measure: float,
+        num_measures: int,
+    ):
+        """Fill part with whole measure rests."""
+        for _ in range(num_measures):
+            r = note.Rest(quarterLength=quarter_notes_per_measure)
+            part.append(r)
+    
+    def _add_aligned_chord_voicings(
+        self,
+        part: stream.Part,
+        chords: List[DetectedChord],
+        bpm: int,
+        quarter_notes_per_measure: float,
+        num_measures: int,
+    ):
+        """Add chord voicings with proper beat alignment."""
+        if not chords:
+            self._fill_with_rests(part, quarter_notes_per_measure, num_measures)
+            return
+        
+        seconds_per_beat = 60.0 / bpm
+        total_duration = quarter_notes_per_measure * num_measures
+        
+        current_offset = 0.0
+        
+        for chord_obj in chords:
+            chord_offset = chord_obj.timestamp / seconds_per_beat
+            chord_dur = chord_obj.duration / seconds_per_beat
+            
+            # Snap to beat grid (half note for bass typically)
+            chord_offset = self._snap_to_grid(chord_offset, 0.5)
+            chord_dur = max(1.0, self._quantize_duration(chord_dur))  # Min quarter note
+            
+            if chord_offset >= total_duration:
+                continue
+            
+            # Add rest if there's a gap
+            gap = chord_offset - current_offset
+            if gap >= 0.5:
+                self._add_quantized_rest(part, gap)
+                current_offset = chord_offset
+            
+            # Ensure chord fits
+            if current_offset + chord_dur > total_duration:
+                chord_dur = total_duration - current_offset
+                chord_dur = max(0.5, self._quantize_duration(chord_dur))
+            
+            # Get bass voicing
+            root_midi = chord_obj.root_midi - 12  # One octave lower
+            pitches = self._get_bass_voicing(chord_obj, root_midi)
+            
+            if pitches:
+                c = m21_chord.Chord(pitches)
+                c.quarterLength = chord_dur
+                part.append(c)
+            else:
+                n = note.Note(max(36, chord_obj.root_midi - 12))
+                n.quarterLength = chord_dur
+                part.append(n)
+            
+            current_offset += chord_dur
+        
+        # Fill remaining
+        remaining = total_duration - current_offset
+        if remaining >= 0.5:
+            self._add_quantized_rest(part, remaining)
+    
+    def _add_bass_chord_voicings(
+        self,
+        part: stream.Part,
+        chords: List[DetectedChord],
+        bpm: int,
+    ):
+        """Add bass chord voicings for left hand piano part with alignment."""
+        seconds_per_beat = 60.0 / bpm
+        current_offset = 0.0
+        
+        for chord_obj in chords:
+            chord_offset = chord_obj.timestamp / seconds_per_beat
+            chord_offset = self._snap_to_grid(chord_offset, 0.5)  # Snap to half beat
+            
+            # Add rest if there's a gap
+            gap = chord_offset - current_offset
+            if gap >= 0.5:
+                self._add_quantized_rest(part, gap)
+                current_offset = chord_offset
+            
+            # Get bass note and chord tones for left hand (lower octave)
+            root_midi = chord_obj.root_midi - 12  # One octave lower
+            pitches = self._get_bass_voicing(chord_obj, root_midi)
+            
+            dur = chord_obj.duration / seconds_per_beat
+            dur = max(1.0, self._quantize_duration(dur))  # Min quarter note
+            
+            if pitches:
+                c = m21_chord.Chord(pitches)
+                c.quarterLength = dur
+                part.append(c)
+            else:
+                n = note.Note(max(36, root_midi))
+                n.quarterLength = dur
+                part.append(n)
+            
+            current_offset += dur
+    
+    def _get_bass_voicing(self, chord_obj: DetectedChord, root_midi: int) -> List[int]:
+        """Get bass voicing pitches for left hand."""
+        # Keep in reasonable bass range (MIDI 36-60)
+        root = max(36, min(48, root_midi))
+        
+        # Simple bass voicing: root + fifth
+        fifth = root + 7
+        
+        # For seventh chords, add the seventh
+        if chord_obj.quality in [ChordQuality.DOMINANT_7, ChordQuality.MAJOR_7, 
+                                  ChordQuality.MINOR_7, ChordQuality.DIMINISHED_7]:
+            if chord_obj.quality == ChordQuality.MAJOR_7:
+                seventh = root + 11
+            elif chord_obj.quality == ChordQuality.MINOR_7:
+                seventh = root + 10
+            else:
+                seventh = root + 10
+            return [root, fifth, seventh]
+        
+        return [root, fifth]
+    
     def _add_melody_notes(
         self, 
         part: stream.Part, 
         notes: list[DetectedNote],
         bpm: int,
     ):
-        """Add melody notes to a part."""
+        """Add melody notes to a part with proper grid alignment."""
         if not notes:
             return
         
-        # Convert time to quarter note lengths
         seconds_per_beat = 60.0 / bpm
+        
+        # Convert and align notes
+        aligned_notes = []
+        for n in notes:
+            offset = n.start_time / seconds_per_beat
+            dur = n.duration / seconds_per_beat
+            
+            # Snap offset to sixteenth note grid
+            offset = self._snap_to_grid(offset, 0.25)
+            dur = self._quantize_duration(dur)
+            
+            aligned_notes.append((offset, dur, n.pitch, n.velocity))
+        
+        # Sort by offset
+        aligned_notes.sort(key=lambda x: x[0])
         
         current_offset = 0.0
         
-        for detected_note in notes:
-            # Calculate offset from start
-            note_offset = detected_note.start_time / seconds_per_beat
-            
+        for offset, dur, pitch, velocity in aligned_notes:
             # Add rest if there's a gap
-            gap = note_offset - current_offset
-            if gap > 0.125:  # Minimum gap to add rest
-                rest_duration = self._quantize_duration(gap)
-                r = note.Rest(quarterLength=rest_duration)
-                part.append(r)
-                current_offset += rest_duration
-            
-            # Calculate note duration
-            duration = detected_note.duration / seconds_per_beat
-            duration = self._quantize_duration(duration)
-            
-            # Ensure minimum duration
-            if duration < 0.125:
-                duration = 0.125
+            gap = offset - current_offset
+            if gap >= 0.25:
+                self._add_quantized_rest(part, gap)
+                current_offset = offset
             
             # Create note
-            n = note.Note(detected_note.pitch)
-            n.quarterLength = duration
-            
-            # Set velocity as dynamics
-            n.volume.velocity = min(127, max(1, detected_note.velocity))
+            n = note.Note(pitch)
+            n.quarterLength = dur
+            n.volume.velocity = min(127, max(1, velocity))
             
             part.append(n)
-            current_offset += duration
+            current_offset += dur
     
     def _add_chord_symbols(
         self, 
@@ -441,24 +802,36 @@ class SheetGenerator:
         return max(0.125, closest)  # Minimum 32nd note
     
     def _export_to_musicxml(self, score: stream.Score) -> str:
-        """Export score to MusicXML string."""
+        """Export score to MusicXML string with proper formatting."""
         from music21.musicxml import m21ToXml
         
         # Quantize all elements to standard durations
         try:
             score = score.quantize(
-                quarterLengthDivisors=[4, 3],  # Allow 16th notes and triplets
+                quarterLengthDivisors=[4, 3, 2],  # 16th notes, triplets, 8th notes
                 processOffsets=True,
                 processDurations=True,
             )
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning(f"Quantize failed: {e}")
         
-        # Make notation to fix any duration/measure issues
+        # Make notation to organize into measures and fix issues
         try:
-            score = score.makeNotation()
-        except Exception:
-            pass  # Continue even if makeNotation fails
+            score = score.makeNotation(
+                inPlace=False,
+                cautionaryNotImmediateRepeat=False,
+            )
+        except Exception as e:
+            logger.warning(f"makeNotation failed: {e}")
+        
+        # Ensure all parts have proper measure alignment
+        try:
+            for part in score.parts:
+                # Make sure measures are properly defined
+                if not part.hasMeasures():
+                    part.makeMeasures(inPlace=True)
+        except Exception as e:
+            logger.warning(f"makeMeasures failed: {e}")
         
         exporter = m21ToXml.GeneralObjectExporter(score)
         xml_bytes = exporter.parse()

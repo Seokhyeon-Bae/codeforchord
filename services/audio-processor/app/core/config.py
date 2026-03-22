@@ -16,7 +16,7 @@ class Settings(BaseSettings):
     
     # File handling
     max_upload_size: int = 50 * 1024 * 1024  # 50MB
-    allowed_extensions: list[str] = [".wav", ".mp3", ".flac", ".ogg", ".m4a"]
+    allowed_extensions: list[str] = [".wav", ".mp3", ".flac", ".ogg", ".m4a", ".webm"]
     temp_dir: Path = Path("./temp")
     
     # Default output settings

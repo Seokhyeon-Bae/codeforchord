@@ -248,6 +248,17 @@ export const useAudioStore = defineStore('audio', () => {
     URL.revokeObjectURL(url)
   }
   
+  const downloadAudio = () => {
+    if (!file.value) return
+    
+    const url = URL.createObjectURL(file.value)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = file.value.name || 'recording.webm'
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+  
   return {
     // State
     file,
@@ -286,5 +297,6 @@ export const useAudioStore = defineStore('audio', () => {
     reset,
     downloadMidi,
     downloadMusicXML,
+    downloadAudio,
   }
 })
