@@ -22,7 +22,25 @@ class Settings(BaseSettings):
     # Default output settings
     default_tempo: int = 120
     default_time_signature: str = "4/4"
-    
+
+    # Azure Blob Storage
+    azure_storage_connection_string: str = ""
+    azure_storage_account_name: str = ""
+    azure_storage_account_key: str = ""
+    azure_container_uploads: str = "cfc-uploads"
+    azure_container_recordings: str = "cfc-recordings"
+    azure_sas_expiry_minutes: int = 60
+    azure_max_storage_bytes: int = 50 * 1024 * 1024 * 1024  # 50GB
+    azure_audio_ttl_hours: int = 72
+    azure_audio_min_retention_hours: int = 1
+    azure_max_upload_size_bytes: int = 500 * 1024 * 1024  # 500MB for Azure-backed uploads
+    lru_interval_seconds: int = 3600
+    lru_eviction_batch_size: int = 50
+
+    # MongoDB
+    mongodb_url: str = "mongodb://localhost:27017"
+    mongodb_database: str = "codeforchord"
+
     class Config:
         env_file = ".env"
         env_prefix = "CFC_"
