@@ -7,11 +7,10 @@ const { isAuthenticated, isLoading, user, loginWithRedirect, logout } = useAuth0
 const login = async () => {
   try {
     await loginWithRedirect()
-  } catch(e) {
+  } catch (e) {
     console.error('login error:', e)
   }
 }
-const signup = () => loginWithRedirect({ authorizationParams: { screen_hint: 'signup' } }).catch(e => console.error('signup error:', e))
 const handleLogout = () => logout({ logoutParams: { returnTo: getAppOrigin() } })
 </script>
 
@@ -21,11 +20,13 @@ const handleLogout = () => logout({ logoutParams: { returnTo: getAppOrigin() } }
       <div class="flex items-center justify-between h-16">
         <!-- Logo -->
         <div class="flex items-center">
-          <div class="w-10 h-10 bg-gradient-to-br from-[#d4a55a] to-[#a8844a] rounded-xl flex items-center justify-center shadow-lg">
-            <svg class="w-6 h-6 text-[#1a1a1f]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
-            </svg>
-          </div>
+          <img
+            src="/favicon.png"
+            alt="CodeForChord"
+            width="40"
+            height="40"
+            class="w-10 h-10 rounded-xl object-contain bg-[#1a1a1f] shadow-lg ring-1 ring-[#3a3a42]/60 shrink-0"
+          />
           <div class="ml-3">
             <h1 class="text-xl font-bold text-[#f5f5f5] tracking-tight">CodeForChord</h1>
             <p class="text-xs text-[#6b6b73]">AI Music Transcription</p>
@@ -75,7 +76,7 @@ const handleLogout = () => logout({ logoutParams: { returnTo: getAppOrigin() } }
               Log in
             </button>
             <button
-              @click="signup"
+              @click="login"
               class="px-4 py-2 bg-[#d4a55a] text-[#1a1a1f] rounded-lg font-semibold text-sm hover:bg-[#e5b86b] transition-colors cursor-pointer"
             >
               Get Started
