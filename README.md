@@ -13,12 +13,11 @@
 - **OpenSheetMusicDisplay** for rendering MusicXML sheet music
 - **Web Audio API** for in-browser audio recording (exports to WAV)
 
-### Mobile App (Flutter)
-- **Flutter 3.0+** for cross-platform iOS/Android development
-- **Provider** for state management
-- **Dio** for HTTP requests
-- **Record** package for audio recording
-- **Material Design 3** with custom dark theme
+### Mobile App (Native iOS)
+- **SwiftUI** + **URLSession** — open `apps/ios/CodeForChord.xcodeproj` in **Xcode** and press Run (no Flutter / CocoaPods)
+- **iOS 16+**, dark UI aligned with the web app
+- See [apps/ios/docs/XCODE_AND_REMOTE.md](apps/ios/docs/XCODE_AND_REMOTE.md) for simulator, device IP, and CI
+- **GitHub Actions** (`.github/workflows/ios-native.yml`) builds the app on **macOS** with `xcodebuild`
 
 ### Backend
 - **Python 3.11** with FastAPI for high-performance async API
@@ -139,7 +138,7 @@ The trained pattern database (`data/patterns.json`) contains:
 ### Prerequisites
 - **Python 3.11** (recommended: use Conda)
 - **Node.js 18+** and npm
-- **Flutter 3.0+** (for mobile app)
+- **Xcode 15+** (macOS only — for the native iOS app)
 - **Git**
 
 ### 1. Clone the Repository
@@ -182,27 +181,17 @@ npm run dev
 
 The web app will be available at `http://localhost:3000` (or next available port)
 
-### 4. Set Up the Mobile App (Flutter)
+### 4. Native iOS app (Xcode on a Mac)
 
 ```bash
-# Install Flutter SDK from https://flutter.dev
-
-# Navigate to mobile app
-cd apps/mobile
-
-# Install dependencies
-flutter pub get
-
-# Run on connected device or emulator
-flutter run
+open apps/ios/CodeForChord.xcodeproj
 ```
 
-**API Configuration for Mobile:**
-- Android emulator: `http://10.0.2.2:8000`
-- iOS simulator: `http://localhost:8000`
-- Physical device: Use your computer's local IP address
+1. Select an **iPhone simulator** (or your device).
+2. Press **Run** (⌘R).
+3. Ensure the backend is on port **8000**. Default API URL is `http://127.0.0.1:8000` (simulator). On a **physical iPhone**, use the in-app **Settings** (gear) and set your Mac’s LAN IP, e.g. `http://192.168.1.10:8000`.
 
-Update the base URL in `apps/mobile/lib/api/api_client.dart`
+More detail: [apps/ios/docs/XCODE_AND_REMOTE.md](apps/ios/docs/XCODE_AND_REMOTE.md).
 
 ### 5. Train Rhythm Patterns (Optional)
 
@@ -253,15 +242,11 @@ codeforchord/
 │   │   │   ├── stores/         # Pinia stores
 │   │   │   └── api/            # API client
 │   │   └── package.json
-│   └── mobile/                 # Flutter mobile app
-│       ├── lib/
-│       │   ├── api/            # Dio HTTP client
-│       │   ├── models/         # Data models
-│       │   ├── providers/      # State management
-│       │   ├── screens/        # App screens
-│       │   ├── widgets/        # UI components
-│       │   └── theme/          # Dark theme
-│       └── pubspec.yaml
+│   └── ios/                    # Native SwiftUI iOS app
+│       ├── CodeForChord.xcodeproj
+│       ├── CodeForChord/       # Swift sources, Info.plist, assets
+│       └── docs/
+│           └── XCODE_AND_REMOTE.md
 ├── services/
 │   └── audio-processor/        # Python backend
 │       ├── app/

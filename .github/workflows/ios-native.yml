@@ -1,0 +1,27 @@
+name: iOS (SwiftUI)
+
+on:
+  push:
+    paths:
+      - 'apps/ios/**'
+      - '.github/workflows/ios-native.yml'
+  pull_request:
+    paths:
+      - 'apps/ios/**'
+      - '.github/workflows/ios-native.yml'
+
+jobs:
+  build:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build (iOS Simulator)
+        run: |
+          xcodebuild \
+            -project apps/ios/CodeForChord.xcodeproj \
+            -scheme CodeForChord \
+            -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' \
+            -configuration Debug \
+            build

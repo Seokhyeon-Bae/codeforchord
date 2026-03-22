@@ -26,6 +26,11 @@ ENV/
 env/
 .venv/
 
+# Xcode (native iOS app)
+**/xcuserdata/
+**/*.xcuserstate
+**/DerivedData/
+
 # IDE
 .idea/
 .vscode/
