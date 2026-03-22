@@ -1,7 +1,10 @@
+from typing import Optional
+
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
 from fastapi.responses import JSONResponse
 
 from app.core.config import get_settings
+from app.core.auth import get_optional_user
 from app.models.storage import AudioFileResponse, SASUrlResponse
 
 router = APIRouter(prefix="/audio", tags=["audio"])
@@ -20,13 +23,15 @@ async def upload_audio(
     file: UploadFile = File(...),
     session_id: str | None = Query(None),
     storage=Depends(get_audio_storage),
+    user: Optional[dict] = Depends(get_optional_user),
 ):
+    effective_session = session_id or (user.get("sub") if user else None)
     data = await file.read()
     try:
         record = await storage.upload_audio(
             data=data,
             original_filename=file.filename or "audio",
-            session_id=session_id,
+            session_id=effective_session,
             upload_type="upload",
         )
     except ValueError as e:
@@ -39,13 +44,15 @@ async def upload_recording(
     file: UploadFile = File(...),
     session_id: str | None = Query(None),
     storage=Depends(get_audio_storage),
+    user: Optional[dict] = Depends(get_optional_user),
 ):
+    effective_session = session_id or (user.get("sub") if user else None)
     data = await file.read()
     try:
         record = await storage.upload_audio(
             data=data,
             original_filename=file.filename or "recording",
-            session_id=session_id,
+            session_id=effective_session,
             upload_type="recording",
         )
     except ValueError as e:

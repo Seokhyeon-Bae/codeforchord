@@ -1,19 +1,29 @@
 import axios from 'axios'
+import { createAuth0 } from '@auth0/auth0-vue'
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
 const api = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 120000, // 2 minutes for audio processing
+  timeout: 120000,
 })
 
-// Request interceptor
+// Auth0 getAccessTokenSilently — set after app mounts
+let _getToken = null
+export const setTokenGetter = (fn) => { _getToken = fn }
+
+// Request interceptor — attach Auth0 access token if available
 api.interceptors.request.use(
-  (config) => {
-    // Add auth token if available
-    const token = localStorage.getItem('token')
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`
+  async (config) => {
+    if (_getToken) {
+      try {
+        const token = await _getToken({
+          authorizationParams: { audience: import.meta.env.VITE_AUTH0_AUDIENCE },
+        })
+        if (token) config.headers.Authorization = `Bearer ${token}`
+      } catch {
+        // Not logged in — proceed without token
+      }
     }
     return config
   },
@@ -165,5 +175,56 @@ export const jazzifyChords = async (file) => {
 // Health check
 export const healthCheck = async () => {
   const response = await api.get('/health')
+  return response.data
+}
+
+// ── Azure Blob Storage ──────────────────────────────────────────────────────
+
+export const uploadAudio = async (file, sessionId = null) => {
+  const formData = new FormData()
+  formData.append('file', file)
+  const params = sessionId ? `?session_id=${sessionId}` : ''
+  const response = await api.post(`/audio/upload${params}`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  })
+  return response.data // { blob_name, original_filename, ... }
+}
+
+export const uploadRecording = async (file, sessionId = null) => {
+  const formData = new FormData()
+  formData.append('file', file)
+  const params = sessionId ? `?session_id=${sessionId}` : ''
+  const response = await api.post(`/audio/recording${params}`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  })
+  return response.data // { blob_name, original_filename, ... }
+}
+
+// ── MongoDB Sheet Music ─────────────────────────────────────────────────────
+
+export const generateAndSaveSheet = async (blobName, options = {}) => {
+  const params = new URLSearchParams()
+  params.append('blob_name', blobName)
+  params.append('output_format', options.format || 'musicxml')
+  params.append('output_type', options.type || 'lead_sheet')
+  params.append('title', options.title || 'Untitled')
+  params.append('tempo', options.tempo || 120)
+  params.append('time_signature', options.timeSignature || '4/4')
+  params.append('instrument', options.instrument || 'piano')
+  params.append('correction_strength', options.correctionStrength ?? 0.5)
+  if (options.sessionId) params.append('session_id', options.sessionId)
+  const response = await api.post(`/sheets/generate-and-save?${params}`)
+  return response.data // { content, sheet_id, ... }
+}
+
+export const getSheet = async (sheetId) => {
+  const response = await api.get(`/sheets/${sheetId}`)
+  return response.data
+}
+
+export const listSheets = async (sessionId = null, limit = 20) => {
+  const params = new URLSearchParams({ limit })
+  if (sessionId) params.append('session_id', sessionId)
+  const response = await api.get(`/sheets/list?${params}`)
   return response.data
 }

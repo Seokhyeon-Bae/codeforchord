@@ -8,6 +8,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
 from fastapi.responses import Response
 
+from app.core.auth import get_optional_user
 from app.models.sheet import (
     GeneratedSheet,
     Instrument,
@@ -58,11 +59,13 @@ async def generate_and_save(
     correction_strength: float = Query(0.5, ge=0.0, le=1.0),
     mongo=Depends(get_mongo),
     audio_storage=Depends(get_audio_storage),
+    user: Optional[dict] = Depends(get_optional_user),
 ):
     """
     Upload or reference an existing audio file, run the full generation pipeline,
     and save the result in MongoDB. Returns GeneratedSheet + sheet_id.
     """
+    effective_session = session_id or (user.get("sub") if user else None)
     settings = get_settings()
     tmp_path: Optional[Path] = None
     audio_file_id: Optional[str] = None
@@ -120,7 +123,7 @@ async def generate_and_save(
         content_bytes = result.content.encode() if isinstance(result.content, str) else result.content
         doc = {
             "audio_file_id": audio_file_id,
-            "session_id": session_id,
+            "session_id": effective_session,
             "title": title,
             "format": output_format.value,
             "output_type": output_type.value,
@@ -140,8 +143,8 @@ async def generate_and_save(
         }
         sheet_id = await mongo.insert_sheet_music(doc)
 
-        if session_id:
-            await mongo.add_sheet_to_session(session_id, sheet_id)
+        if effective_session:
+            await mongo.add_sheet_to_session(effective_session, sheet_id)
 
         return {**result.model_dump(), "sheet_id": sheet_id}
 

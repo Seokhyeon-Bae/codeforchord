@@ -41,6 +41,10 @@ class Settings(BaseSettings):
     mongodb_url: str = "mongodb://localhost:27017"
     mongodb_database: str = "codeforchord"
 
+    # Auth0
+    auth0_domain: str = ""
+    auth0_audience: str = ""
+
     class Config:
         env_file = ".env"
         env_prefix = "CFC_"

@@ -1,15 +1,23 @@
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, watch, onMounted } from 'vue'
+import { useAuth0 } from '@auth0/auth0-vue'
+import { setTokenGetter } from './api/client'
 import Header from './components/Header.vue'
 import FileUpload from './components/FileUpload.vue'
+import Recorder from './components/Recorder.vue'
 import AnalysisPanel from './components/AnalysisPanel.vue'
 import SheetViewer from './components/SheetViewer.vue'
 import ArrangementTools from './components/ArrangementTools.vue'
 import ChordDisplay from './components/ChordDisplay.vue'
 import { useAudioStore } from './stores/audio'
 
+const { getAccessTokenSilently } = useAuth0()
 const store = useAudioStore()
 const activeTab = ref('upload')
+
+onMounted(() => {
+  setTokenGetter(getAccessTokenSilently)
+})
 
 // Auto-switch to sheet tab when sheet is generated
 watch(() => store.sheet, (newSheet) => {
@@ -27,7 +35,7 @@ watch(() => store.sheet, (newSheet) => {
       <!-- Navigation Tabs -->
       <div class="flex space-x-1 bg-white rounded-xl p-1 shadow-sm mb-8">
         <button
-          v-for="tab in ['upload', 'analysis', 'sheet', 'arrange']"
+          v-for="tab in ['upload', 'record', 'analysis', 'sheet', 'arrange']"
           :key="tab"
           @click="activeTab = tab"
           :class="[
@@ -37,7 +45,7 @@ watch(() => store.sheet, (newSheet) => {
               : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
           ]"
         >
-          {{ tab.charAt(0).toUpperCase() + tab.slice(1) }}
+          {{ tab === 'record' ? '녹음' : tab.charAt(0).toUpperCase() + tab.slice(1) }}
         </button>
       </div>
       
@@ -71,6 +79,11 @@ watch(() => store.sheet, (newSheet) => {
         <!-- Upload Tab -->
         <div v-show="activeTab === 'upload'">
           <FileUpload @file-selected="(f) => { store.setFile(f); activeTab = 'analysis' }" />
+
+        <!-- Record Tab -->
+        </div>
+        <div v-show="activeTab === 'record'">
+          <Recorder @file-selected="(f) => { store.setFile(f, 'recording'); activeTab = 'analysis' }" />
           
           <div v-if="store.hasFile" class="mt-6 bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             <h3 class="font-semibold text-gray-900 mb-4">Selected File</h3>

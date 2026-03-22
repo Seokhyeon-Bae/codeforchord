@@ -23,6 +23,9 @@ pydantic-settings>=2.1.0
 aiofiles>=23.2.1
 aiohttp>=3.9.0
 
+# Auth0 JWT verification
+python-jose[cryptography]>=3.3.0
+
 # Async MongoDB driver
 motor>=3.3.0
 pymongo>=4.6.0
