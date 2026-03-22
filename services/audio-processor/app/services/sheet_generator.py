@@ -31,6 +31,7 @@ from app.models.sheet import (
 logger = logging.getLogger(__name__)
 
 # Standard quantization grid values (in quarter notes)
+# Using only common, "normal" note values - no 32nd or 64th notes
 QUANTIZE_GRID = [
     4.0,    # whole
     3.0,    # dotted half
@@ -39,13 +40,13 @@ QUANTIZE_GRID = [
     1.0,    # quarter
     0.75,   # dotted eighth
     0.5,    # eighth
-    0.375,  # dotted sixteenth
-    0.25,   # sixteenth
-    0.125,  # 32nd
 ]
 
-# Beat positions for snapping (subdivisions of a quarter note)
-BEAT_SUBDIVISIONS = [0.0, 0.25, 0.5, 0.75]  # On beat, e-and-a
+# Minimum note duration - use eighth note as minimum for readability
+MIN_NOTE_DURATION = 0.5  # eighth note
+
+# Beat positions for snapping - use half-beat grid for cleaner notation
+BEAT_SUBDIVISIONS = [0.0, 0.5]  # On beat and off-beat only
 
 
 class SheetGenerator:
@@ -378,8 +379,11 @@ class SheetGenerator:
         
         return score
     
-    def _snap_to_grid(self, value: float, grid_size: float = 0.25) -> float:
-        """Snap a value to the nearest grid point."""
+    def _snap_to_grid(self, value: float, grid_size: float = 0.5) -> float:
+        """Snap a value to the nearest grid point.
+        
+        Default grid is half-beat (0.5) for cleaner notation.
+        """
         return round(value / grid_size) * grid_size
     
     def _add_aligned_notes(
@@ -390,7 +394,10 @@ class SheetGenerator:
         quarter_notes_per_measure: float,
         num_measures: int,
     ):
-        """Add notes with proper beat grid alignment."""
+        """Add notes with proper beat grid alignment.
+        
+        Uses half-beat grid (eighth notes) for cleaner, more readable notation.
+        """
         if not notes:
             self._fill_with_rests(part, quarter_notes_per_measure, num_measures)
             return
@@ -404,10 +411,10 @@ class SheetGenerator:
             offset = n.start_time / seconds_per_beat
             dur = n.duration / seconds_per_beat
             
-            # Snap offset to sixteenth note grid
-            offset = self._snap_to_grid(offset, 0.25)
+            # Snap offset to half-beat grid (eighth notes) for cleaner notation
+            offset = self._snap_to_grid(offset, 0.5)
             
-            # Quantize duration
+            # Quantize duration to simple values
             dur = self._quantize_duration(dur)
             
             # Ensure note fits within total duration
@@ -422,13 +429,23 @@ class SheetGenerator:
         # Sort by offset
         aligned_notes.sort(key=lambda x: x[0])
         
-        # Build the part measure by measure
+        # Merge very close notes (within half beat) - pick the louder one
+        merged_notes = []
+        for note_data in aligned_notes:
+            if merged_notes and abs(note_data[0] - merged_notes[-1][0]) < 0.5:
+                # Same position - keep the louder note or merge as chord
+                if note_data[3] > merged_notes[-1][3]:
+                    merged_notes[-1] = note_data
+            else:
+                merged_notes.append(note_data)
+        
+        # Build the part
         current_offset = 0.0
         
-        for offset, dur, pitch, velocity in aligned_notes:
+        for offset, dur, pitch, velocity in merged_notes:
             # Add rest if there's a gap
             gap = offset - current_offset
-            if gap >= 0.25:  # At least a sixteenth note gap
+            if gap >= 0.5:  # At least an eighth note gap
                 self._add_quantized_rest(part, gap)
                 current_offset = offset
             elif gap > 0:
@@ -448,10 +465,13 @@ class SheetGenerator:
             self._add_quantized_rest(part, remaining)
     
     def _add_quantized_rest(self, part: stream.Part, duration: float):
-        """Add rests that sum to the given duration using standard note values."""
+        """Add rests that sum to the given duration using standard note values.
+        
+        Uses only common rest values (minimum eighth note) for readability.
+        """
         remaining = duration
         
-        while remaining >= 0.125:  # Minimum 32nd note
+        while remaining >= 0.5:  # Minimum eighth note rest
             # Find largest standard duration that fits
             for std_dur in QUANTIZE_GRID:
                 if std_dur <= remaining + 0.0001:  # Small tolerance
@@ -460,10 +480,12 @@ class SheetGenerator:
                     remaining -= std_dur
                     break
             else:
-                # Fallback: use smallest value
-                r = note.Rest(quarterLength=0.125)
+                # Fallback: use eighth note
+                r = note.Rest(quarterLength=0.5)
                 part.append(r)
-                remaining -= 0.125
+                remaining -= 0.5
+        
+        # Ignore very small remainders (less than eighth note)
     
     def _fill_with_rests(
         self,
@@ -601,7 +623,10 @@ class SheetGenerator:
         notes: list[DetectedNote],
         bpm: int,
     ):
-        """Add melody notes to a part with proper grid alignment."""
+        """Add melody notes to a part with proper grid alignment.
+        
+        Uses half-beat grid for cleaner, more readable notation.
+        """
         if not notes:
             return
         
@@ -613,8 +638,8 @@ class SheetGenerator:
             offset = n.start_time / seconds_per_beat
             dur = n.duration / seconds_per_beat
             
-            # Snap offset to sixteenth note grid
-            offset = self._snap_to_grid(offset, 0.25)
+            # Snap offset to half-beat grid (eighth notes)
+            offset = self._snap_to_grid(offset, 0.5)
             dur = self._quantize_duration(dur)
             
             aligned_notes.append((offset, dur, n.pitch, n.velocity))
@@ -622,12 +647,21 @@ class SheetGenerator:
         # Sort by offset
         aligned_notes.sort(key=lambda x: x[0])
         
+        # Merge very close notes
+        merged_notes = []
+        for note_data in aligned_notes:
+            if merged_notes and abs(note_data[0] - merged_notes[-1][0]) < 0.5:
+                if note_data[3] > merged_notes[-1][3]:
+                    merged_notes[-1] = note_data
+            else:
+                merged_notes.append(note_data)
+        
         current_offset = 0.0
         
-        for offset, dur, pitch, velocity in aligned_notes:
+        for offset, dur, pitch, velocity in merged_notes:
             # Add rest if there's a gap
             gap = offset - current_offset
-            if gap >= 0.25:
+            if gap >= 0.5:
                 self._add_quantized_rest(part, gap)
                 current_offset = offset
             
@@ -778,10 +812,13 @@ class SheetGenerator:
             return None
     
     def _quantize_duration(self, duration: float) -> float:
-        """Quantize duration to nearest expressible musical value."""
-        # Only use standard note values that MusicXML can express
-        # These are all expressible: whole, half, quarter, eighth, sixteenth, 32nd
-        # Plus dotted versions (multiply by 1.5)
+        """Quantize duration to nearest common musical value.
+        
+        Uses only "normal" note values (no 32nd/64th notes) for readability.
+        Prioritizes simpler values over accuracy.
+        """
+        # Only use common, readable note values
+        # No 16th, 32nd, or 64th notes - keep it simple
         valid_durations = [
             4.0,    # whole
             3.0,    # dotted half
@@ -790,25 +827,34 @@ class SheetGenerator:
             1.0,    # quarter
             0.75,   # dotted eighth
             0.5,    # eighth
-            0.25,   # sixteenth
-            0.125,  # 32nd
         ]
         
         # Ensure duration is positive
         duration = abs(duration)
         
+        # For very short notes, round up to eighth note
+        if duration < 0.5:
+            return 0.5
+        
+        # For notes close to standard values, snap to them
+        # Prefer rounding up to larger values for cleaner notation
+        for std_dur in valid_durations:
+            if abs(duration - std_dur) < 0.25:
+                return std_dur
+        
         # Find closest standard duration
         closest = min(valid_durations, key=lambda x: abs(x - duration))
-        return max(0.125, closest)  # Minimum 32nd note
+        return max(0.5, closest)  # Minimum eighth note
     
     def _export_to_musicxml(self, score: stream.Score) -> str:
         """Export score to MusicXML string with proper formatting."""
         from music21.musicxml import m21ToXml
         
         # Quantize all elements to standard durations
+        # Use only 2 (8th notes) for cleaner notation - no 16ths/32nds
         try:
             score = score.quantize(
-                quarterLengthDivisors=[4, 3, 2],  # 16th notes, triplets, 8th notes
+                quarterLengthDivisors=[2],  # Only 8th notes for cleaner look
                 processOffsets=True,
                 processDurations=True,
             )
