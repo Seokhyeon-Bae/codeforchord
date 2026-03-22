@@ -152,23 +152,11 @@ export const convertMode = async (file, targetMode, options = {}) => {
   return response.data
 }
 
-export const simplifyChords = async (file, targetInstrument = 'guitar') => {
-  const formData = new FormData()
-  formData.append('file', file)
+export const convertModeChords = async (chords, targetMode) => {
+  const params = new URLSearchParams()
+  params.append('target_mode', targetMode)
   
-  const response = await api.post(`/arrange/simplify?target_instrument=${targetInstrument}`, formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  })
-  return response.data
-}
-
-export const jazzifyChords = async (file) => {
-  const formData = new FormData()
-  formData.append('file', file)
-  
-  const response = await api.post('/arrange/jazzify', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  })
+  const response = await api.post(`/arrange/convert-mode/chords?${params}`, chords)
   return response.data
 }
 

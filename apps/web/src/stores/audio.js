@@ -206,34 +206,19 @@ export const useAudioStore = defineStore('audio', () => {
   }
   
   const convertToMode = async (mode) => {
-    if (!file.value) return
-    
-    isLoading.value = true
-    error.value = null
-    
-    try {
-      const result = await api.convertMode(file.value, mode)
-      sheet.value = { content: result.musicxml }
-      chords.value = result.chords
-    } catch (e) {
-      error.value = e.response?.data?.detail || e.message
-    } finally {
-      isLoading.value = false
+    if (!chords.value) {
+      error.value = 'No chords detected. Run "Chords Only" analysis first.'
+      return
     }
-  }
-  
-  const simplify = async () => {
-    if (!file.value) return
     
     isLoading.value = true
     error.value = null
     
     try {
-      const result = await api.simplifyChords(file.value, instrument.value)
-      chords.value = result.simplified_chords
-      if (result.musicxml) {
-        sheet.value = { content: result.musicxml }
-      }
+      const result = await api.convertModeChords(chords.value, mode)
+      chords.value = result
+      // Clear sheet so user regenerates with new chords
+      sheet.value = null
     } catch (e) {
       error.value = e.response?.data?.detail || e.message
     } finally {
@@ -340,7 +325,6 @@ export const useAudioStore = defineStore('audio', () => {
     generateMelodySuggestion,
     transposeMusic,
     convertToMode,
-    simplify,
     reset,
     downloadMidi,
     downloadMusicXML,

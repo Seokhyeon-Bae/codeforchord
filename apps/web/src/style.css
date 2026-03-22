@@ -1,6 +1,22 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap');
 
 @import "tailwindcss";
+
+/* CSS Variables for dark professional theme */
+:root {
+  --bg-primary: #1a1a1f;
+  --bg-secondary: #242429;
+  --bg-card: #2a2a30;
+  --bg-hover: #333338;
+  --text-primary: #f5f5f5;
+  --text-secondary: #a0a0a8;
+  --text-muted: #6b6b73;
+  --accent: #d4a55a;
+  --accent-hover: #e5b86b;
+  --accent-muted: #a8844a;
+  --border: #3a3a42;
+  --border-light: #4a4a52;
+}
 
 /* Base styles */
 html {
@@ -10,4 +26,35 @@ html {
 body {
   font-family: 'Inter', system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+/* Professional card style */
+.card-dark {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+}
+
+/* Gold accent button */
+.btn-accent {
+  background-color: var(--accent);
+  color: var(--bg-primary);
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.btn-accent:hover {
+  background-color: var(--accent-hover);
+}
+
+/* Subtle animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.fade-in {
+  animation: fadeIn 0.4s ease-out;
 }

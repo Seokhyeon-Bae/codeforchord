@@ -6,12 +6,19 @@
 
 ## Tech Stack
 
-### Frontend
+### Frontend (Web)
 - **Vue.js 3** with Vite for fast development
 - **Pinia** for state management
 - **Tailwind CSS** for modern, responsive UI
 - **OpenSheetMusicDisplay** for rendering MusicXML sheet music
 - **Web Audio API** for in-browser audio recording (exports to WAV)
+
+### Mobile App (Flutter)
+- **Flutter 3.0+** for cross-platform iOS/Android development
+- **Provider** for state management
+- **Dio** for HTTP requests
+- **Record** package for audio recording
+- **Material Design 3** with custom dark theme
 
 ### Backend
 - **Python 3.11** with FastAPI for high-performance async API
@@ -69,7 +76,7 @@
 - Audio recordings are stored in **Azure Blob Storage**
 - **LRU (Least Recently Used) cache policy** manages storage space efficiently
 - Frequently accessed recordings remain available; old unused files are automatically cleaned up
-- Reduces storage costs while maintaining user experience
+- Reduces storage costs while enhancing data-privacy and maintaining user experience
 
 ### Processing Pipeline
 1. **Audio Input** → Upload file or record in browser
@@ -132,6 +139,7 @@ The trained pattern database (`data/patterns.json`) contains:
 ### Prerequisites
 - **Python 3.11** (recommended: use Conda)
 - **Node.js 18+** and npm
+- **Flutter 3.0+** (for mobile app)
 - **Git**
 
 ### 1. Clone the Repository
@@ -174,7 +182,29 @@ npm run dev
 
 The web app will be available at `http://localhost:3000` (or next available port)
 
-### 4. Train Rhythm Patterns (Optional)
+### 4. Set Up the Mobile App (Flutter)
+
+```bash
+# Install Flutter SDK from https://flutter.dev
+
+# Navigate to mobile app
+cd apps/mobile
+
+# Install dependencies
+flutter pub get
+
+# Run on connected device or emulator
+flutter run
+```
+
+**API Configuration for Mobile:**
+- Android emulator: `http://10.0.2.2:8000`
+- iOS simulator: `http://localhost:8000`
+- Physical device: Use your computer's local IP address
+
+Update the base URL in `apps/mobile/lib/api/api_client.dart`
+
+### 5. Train Rhythm Patterns (Optional)
 
 To train the rhythm correction model with your own MusicXML files:
 
@@ -217,12 +247,21 @@ python scripts/train_patterns.py --input /path/to/your/musicxml/folder
 ```
 codeforchord/
 ├── apps/
-│   └── web/                    # Vue.js frontend
-│       ├── src/
-│       │   ├── components/     # Vue components
-│       │   ├── stores/         # Pinia stores
-│       │   └── api/            # API client
-│       └── package.json
+│   ├── web/                    # Vue.js web frontend
+│   │   ├── src/
+│   │   │   ├── components/     # Vue components
+│   │   │   ├── stores/         # Pinia stores
+│   │   │   └── api/            # API client
+│   │   └── package.json
+│   └── mobile/                 # Flutter mobile app
+│       ├── lib/
+│       │   ├── api/            # Dio HTTP client
+│       │   ├── models/         # Data models
+│       │   ├── providers/      # State management
+│       │   ├── screens/        # App screens
+│       │   ├── widgets/        # UI components
+│       │   └── theme/          # Dark theme
+│       └── pubspec.yaml
 ├── services/
 │   └── audio-processor/        # Python backend
 │       ├── app/

@@ -107,6 +107,28 @@ async def transpose_chords(
     return transposed
 
 
+@router.post("/convert-mode/chords")
+async def convert_mode_chords(
+    chords: ChordList = Body(..., description="Chord list to convert"),
+    target_mode: str = Query(..., pattern="^(major|minor)$", description="Target mode"),
+):
+    """
+    Convert chord progression between major and minor modes (JSON input).
+    
+    Parallel mode conversion using music theory rules:
+    - Major to Minor: C → Cm, Cmaj7 → Cm7, C7 → Cm7
+    - Minor to Major: Cm → C, Cm7 → Cmaj7, Cdim → C
+    
+    This keeps the same root note and changes the chord quality.
+    """
+    arranger = Arranger()
+    if target_mode == "minor":
+        converted = arranger.to_minor(chords)
+    else:
+        converted = arranger.to_major(chords)
+    return converted
+
+
 @router.post("/convert-mode")
 async def convert_mode(
     file: UploadFile = File(...),

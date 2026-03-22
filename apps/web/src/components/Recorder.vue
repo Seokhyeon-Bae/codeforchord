@@ -3,7 +3,6 @@ import { ref, computed, onUnmounted } from 'vue'
 
 const emit = defineEmits(['file-selected'])
 
-// Recording state
 const isRecording = ref(false)
 const isPaused = ref(false)
 const isConverting = ref(false)
@@ -13,7 +12,6 @@ const audioChunks = ref([])
 const recordingInterval = ref(null)
 const audioStream = ref(null)
 
-// Waveform
 const canvasRef = ref(null)
 let analyser = null
 let animationId = null
@@ -24,8 +22,6 @@ const formattedTime = computed(() => {
   const secs = recordingTime.value % 60
   return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
 })
-
-// ── Waveform visualizer ─────────────────────────────────────────────────────
 
 const startVisualizer = (stream) => {
   audioCtxForViz = new (window.AudioContext || window.webkitAudioContext)()
@@ -49,13 +45,11 @@ const drawWaveform = () => {
 
     ctx.clearRect(0, 0, canvas.width, canvas.height)
 
-    // Background
-    ctx.fillStyle = '#f0f9ff'
+    ctx.fillStyle = '#242429'
     ctx.fillRect(0, 0, canvas.width, canvas.height)
 
-    // Waveform line
     ctx.lineWidth = 2
-    ctx.strokeStyle = isPaused.value ? '#f59e0b' : '#0284c7'
+    ctx.strokeStyle = isPaused.value ? '#a8844a' : '#d4a55a'
     ctx.beginPath()
 
     const sliceWidth = canvas.width / bufferLength
@@ -84,14 +78,11 @@ const stopVisualizer = () => {
   }
   analyser = null
 
-  // Clear canvas
   if (canvasRef.value) {
     const ctx = canvasRef.value.getContext('2d')
     ctx.clearRect(0, 0, canvasRef.value.width, canvasRef.value.height)
   }
 }
-
-// ── Recording controls ──────────────────────────────────────────────────────
 
 const startRecording = async () => {
   try {
@@ -123,7 +114,6 @@ const startRecording = async () => {
         const file = new File([wavBlob], `recording-${timestamp}.wav`, { type: 'audio/wav' })
         emit('file-selected', file)
       } catch {
-        // Fallback: send as-is
         const ext = mimeType.includes('webm') ? 'webm' : 'mp4'
         const blob = new Blob(audioChunks.value, { type: mimeType })
         const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
@@ -142,7 +132,7 @@ const startRecording = async () => {
     recordingInterval.value = setInterval(() => { if (!isPaused.value) recordingTime.value++ }, 1000)
     startVisualizer(stream)
   } catch {
-    alert('마이크 접근 권한이 필요해요. 브라우저 설정에서 허용해주세요.')
+    alert('Microphone access is required. Please allow it in your browser settings.')
   }
 }
 
@@ -167,7 +157,6 @@ const stopRecording = () => {
 }
 
 const cancelRecording = () => {
-  // Prevent onstop from emitting a file
   if (mediaRecorder.value) {
     mediaRecorder.value.onstop = null
     if (mediaRecorder.value.state !== 'inactive') mediaRecorder.value.stop()
@@ -188,8 +177,6 @@ const cleanup = () => {
   recordingTime.value = 0
   audioChunks.value = []
 }
-
-// ── WAV conversion ──────────────────────────────────────────────────────────
 
 const convertToWav = (blob) =>
   new Promise((resolve, reject) => {
@@ -239,100 +226,108 @@ onUnmounted(() => { cancelRecording() })
 </script>
 
 <template>
-  <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-    <h2 class="text-xl font-semibold text-gray-900 mb-2">Record Audio</h2>
-    <p class="text-gray-500 text-sm mb-6">마이크로 직접 녹음하고 바로 분석하세요.</p>
+  <div class="bg-[#2a2a30]/80 backdrop-blur-sm rounded-xl border border-[#3a3a42] p-8">
+    <!-- Hero with mic image -->
+    <div class="relative mb-8 rounded-xl overflow-hidden">
+      <img 
+        src="/image/mic.png" 
+        alt="Microphone" 
+        class="w-full h-48 object-cover opacity-50"
+      />
+      <div class="absolute inset-0 bg-gradient-to-t from-[#2a2a30] via-transparent to-transparent"></div>
+      <div class="absolute bottom-4 left-6">
+        <h2 class="text-2xl font-bold text-[#f5f5f5] mb-1">Record Audio</h2>
+        <p class="text-[#a0a0a8]">Record directly with your microphone</p>
+      </div>
+    </div>
 
     <!-- Idle -->
-    <div v-if="!isRecording && !isConverting" class="flex flex-col items-center gap-4">
-      <div class="w-24 h-24 rounded-full bg-red-50 flex items-center justify-center border-4 border-red-100">
-        <svg class="w-10 h-10 text-red-500" fill="currentColor" viewBox="0 0 20 20">
+    <div v-if="!isRecording && !isConverting" class="flex flex-col items-center gap-6 py-8">
+      <div class="w-28 h-28 rounded-full bg-[#d4a55a]/20 flex items-center justify-center border-4 border-[#d4a55a]/30">
+        <svg class="w-12 h-12 text-[#d4a55a]" fill="currentColor" viewBox="0 0 20 20">
           <path fill-rule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8a1 1 0 10-2 0A5 5 0 015 8a1 1 0 00-2 0 7.001 7.001 0 006 6.93V17H6a1 1 0 100 2h8a1 1 0 100-2h-3v-2.07z" clip-rule="evenodd" />
         </svg>
       </div>
       <button
         @click="startRecording"
-        class="px-8 py-3 bg-red-500 hover:bg-red-600 text-white rounded-full font-semibold text-lg transition-colors cursor-pointer shadow-md"
+        class="px-10 py-4 bg-[#d4a55a] hover:bg-[#e5b86b] text-[#1a1a1f] rounded-full font-bold text-lg transition-all cursor-pointer shadow-lg shadow-[#d4a55a]/20"
       >
-        녹음 시작
+        Start Recording
       </button>
-      <p class="text-xs text-gray-400">클릭하면 마이크 접근 권한을 요청합니다</p>
+      <p class="text-sm text-[#6b6b73]">Click to request microphone access</p>
     </div>
 
     <!-- Converting -->
-    <div v-else-if="isConverting" class="flex flex-col items-center gap-4 py-8">
-      <svg class="w-10 h-10 text-sky-500 animate-spin" fill="none" viewBox="0 0 24 24">
+    <div v-else-if="isConverting" class="flex flex-col items-center gap-4 py-12">
+      <svg class="w-12 h-12 text-[#d4a55a] animate-spin" fill="none" viewBox="0 0 24 24">
         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
       </svg>
-      <p class="text-sky-700 font-medium">WAV로 변환 중...</p>
+      <p class="text-[#d4a55a] font-semibold text-lg">Converting to WAV...</p>
     </div>
 
     <!-- Recording -->
-    <div v-else class="space-y-5">
+    <div v-else class="space-y-6">
       <!-- Waveform canvas -->
-      <div class="rounded-xl overflow-hidden border border-sky-100">
-        <canvas ref="canvasRef" width="600" height="100" class="w-full h-24 block" />
+      <div class="rounded-xl overflow-hidden border border-[#3a3a42]">
+        <canvas ref="canvasRef" width="600" height="120" class="w-full h-28 block" />
       </div>
 
       <!-- Timer + status -->
-      <div class="flex items-center justify-center gap-3">
+      <div class="flex items-center justify-center gap-4 py-4">
         <span
-          :class="['w-3 h-3 rounded-full', isPaused ? 'bg-amber-400' : 'bg-red-500 animate-pulse']"
+          :class="['w-4 h-4 rounded-full', isPaused ? 'bg-[#a8844a]' : 'bg-[#d4a55a] animate-pulse']"
         />
-        <span class="text-3xl font-mono font-bold text-gray-800 tabular-nums">{{ formattedTime }}</span>
-        <span class="text-sm text-gray-500">{{ isPaused ? '일시정지' : '녹음 중' }}</span>
+        <span class="text-4xl font-mono font-bold text-[#f5f5f5] tabular-nums">{{ formattedTime }}</span>
+        <span class="text-sm text-[#6b6b73] uppercase tracking-wide">{{ isPaused ? 'Paused' : 'Recording' }}</span>
       </div>
 
       <!-- Controls -->
       <div class="flex items-center justify-center gap-3">
-        <!-- Pause / Resume -->
         <button
           v-if="!isPaused"
           @click="pauseRecording"
-          class="px-4 py-2 rounded-lg font-medium flex items-center gap-2 bg-amber-50 text-amber-600 hover:bg-amber-100 transition-colors cursor-pointer"
+          class="px-5 py-2.5 rounded-lg font-medium flex items-center gap-2 bg-[#333338] text-[#a0a0a8] hover:bg-[#3a3a42] hover:text-[#f5f5f5] transition-colors cursor-pointer"
         >
           <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
             <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
           </svg>
-          일시정지
+          Pause
         </button>
         <button
           v-else
           @click="resumeRecording"
-          class="px-4 py-2 rounded-lg font-medium flex items-center gap-2 bg-green-50 text-green-600 hover:bg-green-100 transition-colors cursor-pointer"
+          class="px-5 py-2.5 rounded-lg font-medium flex items-center gap-2 bg-[#333338] text-[#a0a0a8] hover:bg-[#3a3a42] hover:text-[#f5f5f5] transition-colors cursor-pointer"
         >
           <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
             <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd" />
           </svg>
-          계속 녹음
+          Resume
         </button>
 
-        <!-- Stop & use -->
         <button
           @click="stopRecording"
-          class="px-5 py-2 rounded-lg font-semibold flex items-center gap-2 bg-sky-600 text-white hover:bg-sky-700 transition-colors cursor-pointer shadow"
+          class="px-6 py-2.5 rounded-lg font-semibold flex items-center gap-2 bg-[#d4a55a] text-[#1a1a1f] hover:bg-[#e5b86b] transition-colors cursor-pointer shadow-lg"
         >
           <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
             <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8 7a1 1 0 00-1 1v4a1 1 0 001 1h4a1 1 0 001-1V8a1 1 0 00-1-1H8z" clip-rule="evenodd" />
           </svg>
-          완료 & 분석
+          Stop & Analyze
         </button>
 
-        <!-- Cancel -->
         <button
           @click="cancelRecording"
-          class="px-4 py-2 rounded-lg font-medium flex items-center gap-2 bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors cursor-pointer"
+          class="px-5 py-2.5 rounded-lg font-medium flex items-center gap-2 bg-[#333338] text-[#6b6b73] hover:bg-[#3a3a42] hover:text-[#a0a0a8] transition-colors cursor-pointer"
         >
           <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
             <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
           </svg>
-          취소
+          Cancel
         </button>
       </div>
 
-      <p class="text-center text-xs text-gray-400">
-        "완료 & 분석"을 누르면 WAV로 변환 후 자동으로 분석 탭으로 이동합니다
+      <p class="text-center text-sm text-[#6b6b73]">
+        Click "Stop & Analyze" to convert and proceed to analysis
       </p>
     </div>
   </div>

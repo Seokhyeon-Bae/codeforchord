@@ -84,10 +84,27 @@ class DetectedChord(BaseModel):
         )
     
     def to_minor(self) -> "DetectedChord":
-        """Convert major chord to minor."""
-        if self.quality == ChordQuality.MAJOR:
-            new_quality = ChordQuality.MINOR
-            new_symbol = self.root + "m"
+        """
+        Convert major-type chord to its parallel minor equivalent.
+        
+        Music theory conversion rules:
+        - C (major triad) → Cm (minor triad)
+        - Cmaj7 → Cm7 (major 7th → minor 7th)
+        - C7 (dominant) → Cm7 (minor 7th)
+        - Cadd9 → Cm (simplified)
+        - Suspended chords stay as-is (no 3rd to change)
+        - Diminished/Augmented stay as-is
+        """
+        conversion_map = {
+            ChordQuality.MAJOR: (ChordQuality.MINOR, "m"),
+            ChordQuality.MAJOR_7: (ChordQuality.MINOR_7, "m7"),
+            ChordQuality.DOMINANT_7: (ChordQuality.MINOR_7, "m7"),
+            ChordQuality.ADD_9: (ChordQuality.MINOR, "m"),
+        }
+        
+        if self.quality in conversion_map:
+            new_quality, suffix = conversion_map[self.quality]
+            new_symbol = self.root + suffix
             if self.bass_note:
                 new_symbol += f"/{self.bass_note}"
             return DetectedChord(
@@ -102,10 +119,26 @@ class DetectedChord(BaseModel):
         return self
     
     def to_major(self) -> "DetectedChord":
-        """Convert minor chord to major."""
-        if self.quality == ChordQuality.MINOR:
-            new_quality = ChordQuality.MAJOR
-            new_symbol = self.root
+        """
+        Convert minor-type chord to its parallel major equivalent.
+        
+        Music theory conversion rules:
+        - Cm (minor triad) → C (major triad)
+        - Cm7 → Cmaj7 (minor 7th → major 7th)
+        - Cdim → C (diminished → major, simplified)
+        - Cm7b5 → Cmaj7 (half-diminished → major 7th)
+        """
+        conversion_map = {
+            ChordQuality.MINOR: (ChordQuality.MAJOR, ""),
+            ChordQuality.MINOR_7: (ChordQuality.MAJOR_7, "maj7"),
+            ChordQuality.DIMINISHED: (ChordQuality.MAJOR, ""),
+            ChordQuality.DIMINISHED_7: (ChordQuality.MAJOR_7, "maj7"),
+            ChordQuality.HALF_DIMINISHED_7: (ChordQuality.MAJOR_7, "maj7"),
+        }
+        
+        if self.quality in conversion_map:
+            new_quality, suffix = conversion_map[self.quality]
+            new_symbol = self.root + suffix
             if self.bass_note:
                 new_symbol += f"/{self.bass_note}"
             return DetectedChord(
