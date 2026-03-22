@@ -231,14 +231,14 @@ class AudioMerger:
                     tempo_max = float(np.max(valid_tempos))
                     
                     # Consider variable if std > 5% of mean
-                    is_variable = tempo_std > (tempo_mean * 0.05)
-                    
+                    is_variable = bool(tempo_std > (tempo_mean * 0.05))
+
                     # Confidence based on consistency
-                    confidence = max(0.0, min(1.0, 1.0 - (tempo_std / tempo_mean)))
-                    
+                    confidence = float(max(0.0, min(1.0, 1.0 - (tempo_std / tempo_mean))))
+
                     return {
-                        "tempo": round(tempo_mean),
-                        "tempo_range": (round(tempo_min), round(tempo_max)),
+                        "tempo": int(round(tempo_mean)),
+                        "tempo_range": (int(round(tempo_min)), int(round(tempo_max))),
                         "is_variable": is_variable,
                         "confidence": round(confidence, 2),
                     }
@@ -304,7 +304,7 @@ class AudioMerger:
                             best_meter = meter
         
         # Determine confidence
-        confidence = min(1.0, best_score / 2.0) if best_score > 0 else 0.3
+        confidence = float(min(1.0, best_score / 2.0)) if best_score > 0 else 0.3
         
         # Map to time signature
         sig_map = {
@@ -315,8 +315,8 @@ class AudioMerger:
         }
         
         return {
-            "time_signature": sig_map.get(best_meter, "4/4"),
-            "beats_per_measure": best_meter,
+            "time_signature": sig_map.get(int(best_meter), "4/4"),
+            "beats_per_measure": int(best_meter),
             "confidence": round(confidence, 2),
         }
     

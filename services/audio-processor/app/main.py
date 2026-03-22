@@ -4,13 +4,14 @@ CodeForChord Audio Processor
 FastAPI application for audio analysis, chord detection, and sheet music generation.
 """
 
+import asyncio
 from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.routes import detect_router, generate_router, arrange_router
+from app.api.routes import detect_router, generate_router, arrange_router, audio_router, sheets_router
 from app.core.config import get_settings
 
 
@@ -18,13 +19,67 @@ from app.core.config import get_settings
 async def lifespan(app: FastAPI):
     """Application lifespan handler for startup/shutdown events."""
     settings = get_settings()
-    
+
     # Create temp directory if it doesn't exist
     Path(settings.temp_dir).mkdir(parents=True, exist_ok=True)
-    
+
+    # Initialize storage services if Azure and MongoDB are configured
+    app.state.mongo = None
+    app.state.blob = None
+    app.state.audio_storage = None
+    app.state.lru_task = None
+
+    if settings.azure_storage_connection_string and settings.mongodb_url:
+        from app.services.mongo_service import MongoService
+        from app.services.azure_blob_service import AzureBlobService
+        from app.services.audio_storage_service import AudioStorageService
+        from app.services.lru_eviction_service import LRUEvictionService, EvictionConfig
+
+        mongo = MongoService(settings.mongodb_url, settings.mongodb_database)
+        await mongo.create_indexes()
+        app.state.mongo = mongo
+
+        blob = AzureBlobService(
+            connection_string=settings.azure_storage_connection_string,
+            account_name=settings.azure_storage_account_name,
+            account_key=settings.azure_storage_account_key,
+        )
+        await blob.ensure_container(settings.azure_container_uploads)
+        await blob.ensure_container(settings.azure_container_recordings)
+        app.state.blob = blob
+
+        app.state.audio_storage = AudioStorageService(
+            mongo=mongo,
+            blob=blob,
+            container_uploads=settings.azure_container_uploads,
+            container_recordings=settings.azure_container_recordings,
+            sas_expiry_minutes=settings.azure_sas_expiry_minutes,
+            max_upload_size_bytes=settings.azure_max_upload_size_bytes,
+        )
+
+        eviction_cfg = EvictionConfig(
+            max_storage_bytes=settings.azure_max_storage_bytes,
+            audio_ttl_hours=settings.azure_audio_ttl_hours,
+            min_retention_hours=settings.azure_audio_min_retention_hours,
+            interval_seconds=settings.lru_interval_seconds,
+            batch_size=settings.lru_eviction_batch_size,
+        )
+        lru = LRUEvictionService(mongo=mongo, blob=blob, config=eviction_cfg)
+        app.state.lru_task = asyncio.create_task(lru.run_forever())
+
     yield
-    
-    # Cleanup on shutdown (optional: clear temp files)
+
+    # Shutdown
+    if app.state.lru_task:
+        app.state.lru_task.cancel()
+        try:
+            await app.state.lru_task
+        except asyncio.CancelledError:
+            pass
+    if app.state.blob:
+        await app.state.blob.close()
+    if app.state.mongo:
+        await app.state.mongo.close()
 
 
 def create_app() -> FastAPI:
@@ -77,6 +132,8 @@ A powerful API for music analysis and generation:
     app.include_router(detect_router)
     app.include_router(generate_router)
     app.include_router(arrange_router)
+    app.include_router(audio_router)
+    app.include_router(sheets_router)
     
     return app
 

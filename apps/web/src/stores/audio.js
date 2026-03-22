@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import * as api from '../api/client'
+import { uploadAudio, uploadRecording, generateAndSaveSheet } from '../api/client'
 
 export const useAudioStore = defineStore('audio', () => {
   // State
@@ -16,6 +17,11 @@ export const useAudioStore = defineStore('audio', () => {
   const tempoInfo = ref(null)
   const timeSignatureInfo = ref(null)
   
+  // Cloud storage
+  const blobName = ref(null)
+  const isUploading = ref(false)
+  const sheetId = ref(null)
+
   // Generated content
   const sheet = ref(null)
   const melody = ref(null)
@@ -43,15 +49,34 @@ export const useAudioStore = defineStore('audio', () => {
   })
   
   // Actions
-  const setFile = (newFile) => {
+  const setFile = (newFile, uploadType = 'upload') => {
     file.value = newFile
     fileName.value = newFile?.name || ''
-    // Reset analysis when new file is set
+    blobName.value = null
+    sheetId.value = null
     notes.value = null
     chords.value = null
     sheet.value = null
     melody.value = null
     error.value = null
+
+    // Upload to Azure in background
+    uploadToCloud(newFile, uploadType)
+  }
+
+  const uploadToCloud = async (newFile, uploadType = 'upload') => {
+    if (!newFile) return
+    isUploading.value = true
+    try {
+      const fn = uploadType === 'recording' ? uploadRecording : uploadAudio
+      const result = await fn(newFile)
+      blobName.value = result.blob_name
+    } catch (e) {
+      // Cloud upload failure is non-fatal — stateless fallback still works
+      console.warn('Cloud upload failed, falling back to stateless mode:', e.message)
+    } finally {
+      isUploading.value = false
+    }
   }
   
   const analyzeAudio = async () => {
@@ -103,21 +128,37 @@ export const useAudioStore = defineStore('audio', () => {
   
   const generateSheetMusic = async (outputType = 'lead_sheet') => {
     if (!file.value) return
-    
+
     isLoading.value = true
     error.value = null
-    
+
     try {
-      const result = await api.generateSheet(file.value, {
-        format: 'musicxml',
-        type: outputType,
-        title: title.value,
-        tempo: tempo.value,
-        timeSignature: timeSignature.value,
-        instrument: instrument.value,
-        correctionStrength: correctionStrength.value,
-      })
-      sheet.value = result
+      if (blobName.value) {
+        // Cloud path: generate from Azure blob → save to MongoDB
+        const result = await generateAndSaveSheet(blobName.value, {
+          format: 'musicxml',
+          type: outputType,
+          title: title.value,
+          tempo: tempo.value,
+          timeSignature: timeSignature.value,
+          instrument: instrument.value,
+          correctionStrength: correctionStrength.value,
+        })
+        sheetId.value = result.sheet_id
+        sheet.value = result
+      } else {
+        // Stateless fallback (Azure upload not yet done)
+        const result = await api.generateSheet(file.value, {
+          format: 'musicxml',
+          type: outputType,
+          title: title.value,
+          tempo: tempo.value,
+          timeSignature: timeSignature.value,
+          instrument: instrument.value,
+          correctionStrength: correctionStrength.value,
+        })
+        sheet.value = result
+      }
     } catch (e) {
       error.value = e.response?.data?.detail || e.message
     } finally {
@@ -203,6 +244,8 @@ export const useAudioStore = defineStore('audio', () => {
   const reset = () => {
     file.value = null
     fileName.value = ''
+    blobName.value = null
+    sheetId.value = null
     notes.value = null
     chords.value = null
     sheet.value = null
@@ -264,6 +307,9 @@ export const useAudioStore = defineStore('audio', () => {
     file,
     fileName,
     isLoading,
+    isUploading,
+    blobName,
+    sheetId,
     error,
     notes,
     chords,
@@ -287,6 +333,7 @@ export const useAudioStore = defineStore('audio', () => {
     
     // Actions
     setFile,
+    uploadToCloud,
     analyzeAudio,
     detectChordsOnly,
     generateSheetMusic,

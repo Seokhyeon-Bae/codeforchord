@@ -23,6 +23,17 @@ pydantic-settings>=2.1.0
 aiofiles>=23.2.1
 aiohttp>=3.9.0
 
+# Auth0 JWT verification
+python-jose[cryptography]>=3.3.0
+
+# Async MongoDB driver
+motor>=3.3.0
+pymongo>=4.6.0
+
+# Azure Blob Storage
+azure-storage-blob>=12.19.0
+azure-identity>=1.15.0
+
 # Testing
 pytest>=8.0.0
 pytest-asyncio>=0.23.0

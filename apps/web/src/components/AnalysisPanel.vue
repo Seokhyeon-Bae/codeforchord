@@ -26,6 +26,21 @@ const instruments = [
     
     <!-- Analysis Controls -->
     <div v-else class="space-y-6">
+      <!-- Cloud upload status -->
+      <div v-if="store.isUploading" class="flex items-center gap-2 px-4 py-2 bg-sky-50 rounded-lg text-sky-600 text-sm">
+        <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+        </svg>
+        Azure에 업로드 중...
+      </div>
+      <div v-else-if="store.blobName" class="flex items-center gap-2 px-4 py-2 bg-green-50 rounded-lg text-green-600 text-sm">
+        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+          <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+        </svg>
+        Azure 업로드 완료 — 악보 생성 시 MongoDB에 저장됩니다
+      </div>
+
       <!-- File Info -->
       <div class="flex items-center p-4 bg-gray-50 rounded-lg">
         <div class="w-12 h-12 bg-sky-100 rounded-lg flex items-center justify-center mr-4">
